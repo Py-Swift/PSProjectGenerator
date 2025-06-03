@@ -30,13 +30,13 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 	let resourcesPath: Path
 	let pythonLibPath: Path
 	let app_path: Path
-    let experimental: Bool
+    let legacy: Bool
 	
 	weak var project: KivyProject?
 	
 	
 	
-    public init(name: String, py_src: Path, dist_lib: Path, projectSpec: Path?, workingDir: Path, app_path: Path, experimental: Bool) async throws {
+    public init(name: String, py_src: Path, dist_lib: Path, projectSpec: Path?, workingDir: Path, app_path: Path, legacy: Bool) async throws {
 		self.name = name
 		self.workingDir = workingDir
 		self.app_path = app_path
@@ -46,7 +46,7 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 		self.pythonProject = py_src
 		self.dist_lib = dist_lib
 		self.projectSpec = projectSpec
-        self.experimental = experimental
+        self.legacy = legacy
 	}
 	public func build() async throws {
 		
@@ -56,7 +56,7 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 		var configDict: [String: Any] = [
 			"LIBRARY_SEARCH_PATHS": [
 				"$(inherited)",
-            ] + ( experimental ? [] : [dist_lib]),
+            ] + ( legacy ? [dist_lib] : []),
 			"SWIFT_VERSION": "5.0",
 			"OTHER_LDFLAGS": "-all_load",
 			"ENABLE_BITCODE": false
@@ -110,9 +110,9 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 			//			.init(type: .package(product: "PythonSwiftCore"), reference: "KivySwiftLink"),
 			
 			.init(type: .package(products: ["KivyLauncher"]), reference: "KivySwiftLink"),
-			.init(type: .package(products: ["PySwiftObject"]), reference: "PythonSwiftLink"),
-			.init(type: .package(products: ["PySwiftCore"]), reference: "PythonSwiftLink"),
-			.init(type: .package(products: ["KivyCore"]), reference: "KivyCore"),
+			.init(type: .package(products: ["SwiftonizeModules"]), reference: "PySwiftKit"),
+            .init(type: .package(products: ["PythonCore"]), reference: "PythonCore"),
+			//.init(type: .package(products: ["KivyCore"]), reference: "KivyCore"),
 			.init(type: .package(products: ["KivyLauncher"]), reference: "KivyLauncher"),
 			
 			
@@ -137,7 +137,7 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 		]
 		if
 			let psp_bundle = Bundle(path: (app_path + "PythonSwiftProject_PSProjectGen.bundle").string ),
-			let _project_plist_keys = psp_bundle.path(forResource: "downloads", ofType: "yml")
+			let _project_plist_keys = psp_bundle.path(forResource: "project_plist_keys", ofType: "yml")
 		{
 			try loadBasePlistKeys(from: .init(filePath: _project_plist_keys), keys: &mainkeys)
 		}
@@ -152,7 +152,7 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 			mainkeys.merge(extraKeys)
 			return .init(path: "Info.plist", attributes: mainkeys)
 		}
-		
+        
 		return .init(path: "Info.plist", attributes: mainkeys)
 	}
 	
@@ -180,7 +180,9 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 	}
 	
 	public func buildToolPlugins() async throws -> [ProjectSpec.BuildToolPlugin] {
-		[.init(plugin: "Swiftonize", package: "SwiftonizePlugin")]
+		[
+            //.init(plugin: "Swiftonize", package: "SwiftonizePlugin")
+        ]
 	}
 	
 	public func postCompileScripts() async throws -> [ProjectSpec.BuildScript] {

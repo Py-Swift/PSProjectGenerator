@@ -170,16 +170,16 @@ public class KivyProject: PSProjectProtocol {
 	let app_path: Path
     let psp_bundle: Bundle
     
-    let experimental: Bool
+    let legacy: Bool
 	
-    public init(name: String, py_src: Path?, requirements: Path?, projectSpec: Path?, workingDir: Path, app_path: Path, experimental: Bool) async throws {
+    public init(name: String, py_src: Path?, requirements: Path?, projectSpec: Path?, workingDir: Path, app_path: Path, legacy: Bool) async throws {
 		self.name = name
 		self.workingDir = workingDir
 		let resources = workingDir + "Resources"
 		self.resourcesPath = resources
 		self.pythonLibPath = resources + "lib"
 		self.app_path = app_path
-        self.experimental = experimental
+        self.legacy = legacy
 		self.local_py_src = py_src == nil
 		self.py_src = py_src ?? "py_src"
 		self.requirements = requirements
@@ -193,7 +193,7 @@ public class KivyProject: PSProjectProtocol {
 			projectSpec: projectSpec,
 			workingDir: workingDir,
 			app_path: app_path,
-            experimental: experimental
+            legacy: legacy
 		)
 		_targets = [
 			
@@ -249,22 +249,26 @@ public class KivyProject: PSProjectProtocol {
 		guard let latest = releases.releases.first else { throw CocoaError(.coderReadCorrupt) }
 		
 		var output: [String : ProjectSpec.SwiftPackage] = [
-			"SwiftonizePlugin": .remote(
-				url: "https://github.com/pythonswiftlink/SwiftonizePlugin",
-				versionRequirement: .upToNextMajorVersion("0.0.2")
-			),
+//			"SwiftonizePlugin": .remote(
+//				url: "https://github.com/pythonswiftlink/SwiftonizePlugin",
+//				versionRequirement: .upToNextMajorVersion("0.0.2")
+//			),
 			"PythonCore": .remote(
 				url: "https://github.com/kivyswiftlink/PythonCore",
 				versionRequirement: .exact(latest.tag_name)
 			),
-			"KivyCore": .remote(
-				url: "https://github.com/kivyswiftlink/KivyCore",
-				versionRequirement: .exact(latest.tag_name)
-			),
-			"PythonSwiftLink": .remote(
-				url: "https://github.com/kivyswiftlink/PythonSwiftLink",
-				versionRequirement: .upToNextMajorVersion("311.0.0")
-			),
+//			"KivyCore": .remote(
+//				url: "https://github.com/kivyswiftlink/KivyCore",
+//				versionRequirement: .exact(latest.tag_name)
+//			),
+//			"PythonSwiftLink": .remote(
+//				url: "https://github.com/kivyswiftlink/PythonSwiftLink",
+//				versionRequirement: .upToNextMajorVersion("311.0.0")
+//			),
+            "PySwiftKit": .remote(
+                url: "https://github.com/kivyswiftlink/PySwiftKit",
+                versionRequirement: .upToNextMajorVersion("311.0.0")
+            ),
 			"KivyLauncher": .remote(
 				url: "https://github.com/kivyswiftlink/KivyLauncher",
 				versionRequirement: .branch("master")
@@ -314,7 +318,7 @@ public class KivyProject: PSProjectProtocol {
 		
 		try? (current + "Resources/YourApp").mkpath()
 		try? (current + "wrapper_sources").mkdir()
-        if !experimental {
+        if legacy {
             try? distIphoneos.mkpath()
             try? distSimulator.mkpath()
         }
@@ -327,7 +331,7 @@ public class KivyProject: PSProjectProtocol {
 			if asset.lastPathComponent.contains("site") {
 				try await unpackAsset(src: .init(asset.path()), to: resourcesPath)
 			}
-            if !experimental {
+            if legacy {
                 if asset.lastPathComponent.contains("dist") {
                     try await unpackDistAssets(src: .init(asset.path()), to: distFolder)
                     
@@ -346,7 +350,7 @@ public class KivyProject: PSProjectProtocol {
 						try await unpackAsset(src: .init(asset.path()), to: mainSiteFolder)
 					}
 					
-                    if !experimental {
+                    if legacy {
                         if name.contains("dist") {
                             try await unpackAsset(src: .init(asset.path()), to: distFolder)
                         }
@@ -374,7 +378,7 @@ public class KivyProject: PSProjectProtocol {
         
         
         for site_folder in site_folders {
-            if experimental {
+            if !legacy {
                 removeAll_so_libs(path: site_folder)
             } else {
                 try patchPythonLib(pythonLib: site_folder, dist: distFolder + "iphoneos")
@@ -416,9 +420,33 @@ public class KivyProject: PSProjectProtocol {
 		}
 		
 		//try? (kivyAppFiles + "dylib-Info-template.plist").move(resourcesPath + "dylib-Info-template.plist")
-		try? (kivyAppFiles + "Launch Screen.storyboard").move(resourcesPath + "Launch Screen.storyboard")
-		try? (kivyAppFiles + "Images.xcassets").move(resourcesPath + "Images.xcassets")
-		try? (kivyAppFiles + "icon.png").move(resourcesPath + "icon.png")
+		
+        if let spec = projectSpecData {
+            
+            if let icon = spec.icon {
+                try? icon.copy(resourcesPath + "icon.png")
+            } else {
+                try? (kivyAppFiles + "icon.png").move(resourcesPath + "icon.png")
+            }
+            
+            if let imageset = spec.imageset {
+                try? imageset.copy(resourcesPath + "Images.xcassets")
+            } else {
+                try? (kivyAppFiles + "Images.xcassets").move(resourcesPath + "Images.xcassets")
+            }
+            
+            if let launch_screen = spec.launch_screen {
+                try launch_screen.copy(resourcesPath + "Launch Screen.storyboard")
+            } else {
+                try? (kivyAppFiles + "Launch Screen.storyboard").move(resourcesPath + "Launch Screen.storyboard")
+            }
+            
+        } else {
+            try? (kivyAppFiles + "Launch Screen.storyboard").move(resourcesPath + "Launch Screen.storyboard")
+            try? (kivyAppFiles + "Images.xcassets").move(resourcesPath + "Images.xcassets")
+            try? (kivyAppFiles + "icon.png").move(resourcesPath + "icon.png")
+        }
+		
 		
 		if local_py_src {
 			try? (current + "py_src").mkdir()
@@ -432,6 +460,10 @@ public class KivyProject: PSProjectProtocol {
 		for target in _targets {
 			try! await target.build()
 		}
+        
+        if let packages_dump = projectSpecData?.packages_dump {
+            
+        }
 	}
 	
 	public func unpackAsset(src: Path, to: Path) async throws {
@@ -636,7 +668,7 @@ public class KivyProject: PSProjectProtocol {
 		}
 		
 		let xcodeProject = try! projectGenerator.generateXcodeProject(in: workingDir, userName: userName)
-		
+        xcodeProject.pbxproj.buildConfigurations.first!.buildSettings
 		try! fw.writePlists()
 		//
 		

@@ -19,7 +19,9 @@ let package = Package(
 		.package(url: "https://github.com/marmelroy/Zip", from: .init(2, 1, 0)),
 		.package(url: "https://github.com/swiftlang/swift-syntax.git", .upToNextMajor(from: .init(509, 0, 0))),
 		.package(url: "https://github.com/jpsim/Yams.git", .upToNextMajor(from: "5.0.6")),
-		
+        .package(url: "https://github.com/PythonSwiftLink/PyCodable", .upToNextMajor(from: "0.0.1")),
+        .package(url: "https://github.com/PythonSwiftLink/PySwiftKit", .upToNextMajor(from: "311.0.0")),
+        .package(url: "https://github.com/PythonSwiftLink/PythonCore", .upToNextMajor(from: "311.0.0")),
 		//.package(path: "../SwiftPackageGen")
 		//.package(url: "https://github.com/PythonSwiftLink/SwiftPackageGen", from: .init(0, 0, 3)),
 		//.package(path: "/Volumes/CodeSSD/XcodeGithub/SwiftPackageGen")
@@ -42,6 +44,11 @@ let package = Package(
 				//.product(name: "SwiftSyntaxParser", package: "swift-syntax"),
 				.product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
 				.product(name: "Yams", package: "Yams"),
+                
+                .product(name: "PySwiftCore", package: "PySwiftKit"),
+                .product(name: "PyExecute", package: "PySwiftKit"),
+                .product(name: "PythonCore", package: "PythonCore"),
+                .product(name: "PyCodable", package: "PyCodable")
 				//.product(name: "RecipeBuilder", package: "SwiftPackageGen")
 			],
 			resources: [

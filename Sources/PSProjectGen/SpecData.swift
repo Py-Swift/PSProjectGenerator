@@ -28,6 +28,28 @@ public struct SwiftPackageData: Decodable {
 	let python_imports: PythonImports?
 }
 
+extension Path: @retroactive Decodable {
+    public init(from decoder: any Decoder) throws {
+        self = .init(try decoder.singleValueContainer().decode(String.self))
+    }
+    
+    
+}
+
+public struct VenvPackages: Decodable {
+    let venv_path: Path
+    let packages: [Package]
+    
+    
+    
+    struct Package: Decodable {
+        let url: Path?
+        let path: Path?
+        let version: String?
+        let branch: String?
+    }
+}
+
 public struct SpecData: Decodable {
 	let development_team: DevelopmentTeamData?
 	let info_plist: [String:String]?
@@ -36,7 +58,48 @@ public struct SpecData: Decodable {
 	let pip_requirements: [PipRequirement]?
 	let packages: [String: SwiftPackageData]?
 	let toolchain_recipes: [String]?
+    let packages_dump: [VenvPackages]?
+    
+    // new
+    let experimental: Bool?
+    let icon: Path?
+    let imageset: Path?
+    let launch_screen: Path?
 }
+
+fileprivate let newSpecFilePy = """
+
+
+class ProjectSpec:
+
+    development_team = {
+        #"id": "T5Q8XY2KM9"
+    }
+
+    info_plist = {
+        "NSCameraUsageDescription": "require camera"
+         # "NSBluetoothAlwaysUsageDescription": "require bluetooth"
+    }
+
+    # icon = "your_path/icon.png"
+    # imageset = "your_path/Images.xcassets"
+    # launch_screen = "your_path/Launch Screen.storyboard"
+
+    packages = {
+        # "PyCoreBluetooth" : {
+        #     "url": "https://github.com/KivySwiftPackages/PyCoreBluetooth",
+        #     "branch": "master",
+        #     "products": [ "PyCoreBluetooth" ],
+        #     "python_imports": {
+        #         "products": [ "PyCoreBluetooth" ],
+        #         "modules": [ "corebluetooth" ]
+        #     }
+        # }
+    }
+
+project = ProjectSpec()
+
+"""
 
 fileprivate let newSpecFile = """
 # spec file when creating xcode project.
@@ -57,6 +120,17 @@ packages:
  #         products: [ PyCoreBluetooth ] # what products that has wrapper
  #         modules: [ corebluetooth ] # what modules to append to import list .init(name: "corebluetooth", module: PyInit_corebluetooth)
 
+icon:
+ # your_path/icon.png
+
+imageset:
+ # your_path/Images.xcassets
+
+launch_screen:
+ # your_path/Launch Screen.storyboard
+
+
+
 pip_folders:
  # - path: /path/to/extra_pips
 
@@ -66,17 +140,55 @@ pip_requirements:
 toolchain_recipes:
  # - pillow
 
+venv_packages:
+ # - name: SomePackage
+
 """.replacingOccurrences(of: "\t", with: "    ")
 
-public func newSpecData() -> String {
-	newSpecFile
+public func newSpecData(type: SpecFileType) -> String {
+    switch type {
+    case .yml:
+        newSpecFile
+    case .py:
+        newSpecFilePy
+    }
 }
 
-
+public enum SpecFileType: String {
+    case yml
+    case py
+}
 
 import Yams
 extension PathKit.Path {
 	public func specData() throws -> SpecData {
-		try YAMLDecoder().decode(SpecData.self, from: read())
+        guard let ext = self.extension, let fileType = SpecFileType(rawValue: ext) else { fatalError("wrong file format")}
+        return switch fileType {
+        case .yml:
+            try YAMLDecoder().decode(SpecData.self, from: read())
+        case .py:
+            try pyDecode(path: self)
+        }
+		
 	}
+}
+
+import PyCodable
+import PythonCore
+import PySwiftCore
+import PyExecute
+fileprivate func pyDecode(path: Path) throws -> SpecData {
+    try launchPython()
+    let module = PyDict_New()!
+    let code = try path.read(.utf8)
+    PyRun_String(string: code, flag: .file, globals: module, locals: module)?.decref()
+    guard let project = PyObject_GetAttr(module, "project") else {
+        PyErr_Print()
+        fatalError("module has no project variable")
+    }
+    defer {
+        project.decref()
+        module.decref()
+    }
+    return try PyDecoder().decode(SpecData.self, from: project)
 }
