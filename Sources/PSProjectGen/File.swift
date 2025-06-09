@@ -23,12 +23,16 @@ private func addPythonSwiftImport(_ module_name: String) -> ExprSyntax {
 //	fatalError()
 }
 
+private func add_PySwiftImport(name: String) -> ExprSyntax {
+    return .init(MemberAccessExprSyntax(leadingTrivia: .newline + .tab ,period: .periodToken(), name: .identifier(name)))
+}
+
 public func ModifyMainFile(source: String, imports: [String], pyswiftProducts: [String]) -> String {
 	let parse = Parser.parse(source: source)
 	var export: [CodeBlockItemListSyntax.Element] = []
-	var productImports: [ImportDeclSyntax] = pyswiftProducts.map { p in
-		return .init(path: .init([.init(name: .identifier(p))]))
-	}
+//	var productImports: [ImportDeclSyntax] = pyswiftProducts.map { p in
+//		return .init(path: .init([.init(name: .identifier(p))]))
+//	}
 	for stmt in parse.statements {
 		let item = stmt.item
 		//print()
@@ -55,7 +59,11 @@ public func ModifyMainFile(source: String, imports: [String], pyswiftProducts: [
 					var elements = arrayExpr.elements.map(\.expression)
 					
 					for imp in imports {
-						elements.append(addPythonSwiftImport(imp))
+                        if imp.hasPrefix(".") {
+                            elements.append(add_PySwiftImport(name: .init(imp.dropFirst())))
+                        } else {
+                            elements.append(addPythonSwiftImport(imp))
+                        }
 					}
 					
 					arrayExpr.elements = .init(elements.map({ .init(expression: $0, trailingComma: .commaToken()) }))
@@ -77,3 +85,9 @@ public func ModifyMainFile(source: String, imports: [String], pyswiftProducts: [
 
 	return SourceFileSyntax(statements: .init(export), endOfFileToken: .endOfFileToken()).description
 }
+
+
+func macOS_MainFile() -> String {"""
+
+
+"""}

@@ -150,6 +150,46 @@ public func patchPythonLib(pythonLib: Path, dist: Path) throws {
 
 public typealias ProjectSpecDictionary = [String:Any] //[ String: [[String: Any]] ]
 
+
+public enum ProjectTarget: CustomStringConvertible {
+    case iOS
+    case macOS
+    
+    public var description: String {
+        switch self {
+        case .iOS:
+            "iOS"
+        case .macOS:
+            "macOS"
+        }
+    }
+    
+    public func root(current: Path, ios_only: Bool) -> Path {
+        if ios_only {
+            current
+        } else {
+            switch self {
+            case .iOS:
+                current + "iOS"
+            case .macOS:
+                current + "macOS"
+            }
+        }
+    }
+    
+    public func sources(current: Path, ios_only: Bool) -> Path {
+        root(current: current, ios_only: ios_only) + "Sources"
+    }
+    
+    public func resources(current: Path, ios_only: Bool) -> Path {
+        root(current: current, ios_only: ios_only) + "Resources"
+    }
+    
+    public func site_packages(current: Path, ios_only: Bool) -> Path {
+        resources(current: current, ios_only: ios_only) + "site-packages"
+    }
+}
+
 public class KivyProject: PSProjectProtocol {
 	public var name: String
 	
@@ -164,64 +204,87 @@ public class KivyProject: PSProjectProtocol {
 	public var projectSpec: Path?
 	
 	let workingDir: Path
-	let resourcesPath: Path
+	//let resourcesPath: Path
 	let pythonLibPath: Path
 	var projectSpecData: SpecData?
 	let app_path: Path
     let psp_bundle: Bundle
     
     let legacy: Bool
+    
+    let ios_only: Bool
+    
+    var target_types: [ProjectTarget]
 	
-    public init(name: String, py_src: Path?, requirements: Path?, projectSpec: Path?, workingDir: Path, app_path: Path, legacy: Bool) async throws {
+    public init(name: String, py_src: Path?, requirements: Path?, projectSpec: Path?, workingDir: Path, app_path: Path, legacy: Bool, ios_only: Bool) async throws {
 		self.name = name
+        target_types = ios_only ? [.iOS] : [.iOS, .macOS]
 		self.workingDir = workingDir
-		let resources = workingDir + "Resources"
-		self.resourcesPath = resources
+        let resources = workingDir + "\(ios_only ? "" : "iOS/")Resources"
+		//self.resourcesPath = resources
 		self.pythonLibPath = resources + "lib"
 		self.app_path = app_path
         self.legacy = legacy
+        self.ios_only = ios_only
 		self.local_py_src = py_src == nil
 		self.py_src = py_src ?? "py_src"
 		self.requirements = requirements
 		self.projectSpec = projectSpec
 		self.projectSpecData = try projectSpec?.specData()
 		let base_target = try await KivyProjectTarget(
-			name: name,
+            name: name,
 			py_src: self.py_src,
 			//dist_lib: (try await Path.distLib(workingDir: workingDir)).string,
 			dist_lib: (workingDir + "dist_lib"),
-			projectSpec: projectSpec,
+            projectSpec: projectSpecData,
 			workingDir: workingDir,
 			app_path: app_path,
-            legacy: legacy
+            legacy: legacy,
+            ios_only: ios_only
 		)
-		_targets = [
-			
-		]
+        
+        
+		_targets = []
+        
         print(app_path)
         psp_bundle = Bundle(path: (app_path + "PythonSwiftProject_PSProjectGen.bundle").string )!
         
 		base_target.project = self
 		_targets.append(base_target)
+        if !ios_only {
+            let macos_target = try await KivyProjectTargetMacOS(
+                name: name,
+                py_src: self.py_src,
+                //dist_lib: (try await Path.distLib(workingDir: workingDir)).string,
+                dist_lib: (workingDir + "dist_lib"),
+                projectSpec: projectSpecData,
+                workingDir: workingDir,
+                app_path: app_path,
+                legacy: legacy,
+                ios_only: ios_only
+            )
+            macos_target.project = self
+            _targets.append(macos_target)
+        }
 	}
 	public func targets() async throws -> [Target] {
 		var output: [Target] = []
 		for target in _targets {
-			output.append( try await target.target() )
+			output.append( try! await target.target() )
 		}
 		return output
 	}
 	public var distFolder: Path { workingDir + "dist_lib"}
 	var distIphoneos: Path { distFolder + "iphoneos"}
 	var distSimulator: Path { distFolder + "iphonesimulator"}
-	var mainSiteFolder: Path { resourcesPath + "site-packages" }
+	//var mainSiteFolder: Path { resourcesPath + "site-packages" }
 	var site_folders: [Path] {
 		
-		var output: [Path] = [ mainSiteFolder ]
-		let numpySite = resourcesPath + "numpy-site"
-		if numpySite.exists {
-			output.append(numpySite)
-		}
+		var output: [Path] = [ ]
+//		let numpySite = resourcesPath + "numpy-site"
+//		if numpySite.exists {
+//			output.append(numpySite)
+//		}
 		
 		return output
 	}
@@ -243,7 +306,7 @@ public class KivyProject: PSProjectProtocol {
 	}
 	
 	public func packages() async throws -> [String : ProjectSpec.SwiftPackage] {
-		var releases = try await GithubAPI(owner: "KivySwiftLink", repo: "KivyCore")
+		var releases = try await GithubAPI(owner: "kv-swift", repo: "KivyCore")
       
 		try! await releases.handleReleases()
 		guard let latest = releases.releases.first else { throw CocoaError(.coderReadCorrupt) }
@@ -253,34 +316,38 @@ public class KivyProject: PSProjectProtocol {
 //				url: "https://github.com/pythonswiftlink/SwiftonizePlugin",
 //				versionRequirement: .upToNextMajorVersion("0.0.2")
 //			),
-			"PythonCore": .remote(
-				url: "https://github.com/kivyswiftlink/PythonCore",
-				versionRequirement: .exact(latest.tag_name)
-			),
+//			"PythonCore": .remote(
+//				url: "https://github.com/kv-swift/PythonCore",
+//				versionRequirement: .exact(latest.tag_name)
+//			),
+            "PythonCore": .local(path: "/Volumes/CodeSSD/PythonSwiftGithub/PythonCore", group: nil, excludeFromProject: false),
 //			"KivyCore": .remote(
-//				url: "https://github.com/kivyswiftlink/KivyCore",
+//				url: "https://github.com/kv-swift/KivyCore",
 //				versionRequirement: .exact(latest.tag_name)
 //			),
 //			"PythonSwiftLink": .remote(
-//				url: "https://github.com/kivyswiftlink/PythonSwiftLink",
+//				url: "https://github.com/kv-swift/PythonSwiftLink",
 //				versionRequirement: .upToNextMajorVersion("311.0.0")
 //			),
-            "PySwiftKit": .remote(
-                url: "https://github.com/kivyswiftlink/PySwiftKit",
-                versionRequirement: .upToNextMajorVersion("311.0.0")
-            ),
-			"KivyLauncher": .remote(
-				url: "https://github.com/kivyswiftlink/KivyLauncher",
-				versionRequirement: .branch("master")
-			),
-			
+//            "PySwiftKit": .remote(
+//                url: "https://github.com/kv-swift/PySwiftKit",
+//                versionRequirement: .upToNextMajorVersion("311.0.0")
+//            ),
+            "PySwiftKit": .local(path: "/Volumes/CodeSSD/PythonSwiftGithub/PySwiftKit", group: nil, excludeFromProject: false),
+
+//			"KivyLauncher": .remote(
+//				url: "https://github.com/kv-swift/KivyLauncher",
+//				versionRequirement: .branch("master")
+//			),
+            "KivyLauncher": .local(path: "/Volumes/CodeSSD/PythonSwiftGithub/KivyLauncher", group: nil, excludeFromProject: false),
+
 		]
-		if let packageSpec = projectSpec {
+        if let packageSpec = projectSpecData {
 			try! loadSwiftPackages(from: packageSpec, output: &output)
 		}
 		if let recipes = projectSpecData?.toolchain_recipes  {
 			output = recipes.reduce(into: output) { partialResult, next in
-				partialResult[next] = .remote(url: "https://github.com/kivyswiftlink/KivyExtra", versionRequirement: .exact( latest.tag_name))
+				partialResult[next] = .remote(url: "https://github.com/kv-swift/KivyExtra", versionRequirement: .exact( latest.tag_name))
 			}
 		}
 		
@@ -314,51 +381,63 @@ public class KivyProject: PSProjectProtocol {
 	}
 	
 	public func createStructure() async throws {
-		let current = workingDir
-		
-		try? (current + "Resources/YourApp").mkpath()
-		try? (current + "wrapper_sources").mkdir()
-        if legacy {
-            try? distIphoneos.mkpath()
-            try? distSimulator.mkpath()
-        }
-		let kivy_core = ReleaseAssetDownloader.KivyCore()
-		
-		for asset in try await kivy_core.downloadFiles() ?? [] {
-			
-			//let url: URL = try await download(url: asset)
-			
-			if asset.lastPathComponent.contains("site") {
-				try await unpackAsset(src: .init(asset.path()), to: resourcesPath)
-			}
-            if legacy {
-                if asset.lastPathComponent.contains("dist") {
-                    try await unpackDistAssets(src: .init(asset.path()), to: distFolder)
-                    
+       
+		//try? (current + "wrapper_sources").mkdir()
+       
+        
+        for target_type in target_types {
+            try? ( target_type.resources(current: workingDir, ios_only: ios_only) + "YourApp").mkpath()
+            switch target_type {
+            case .iOS:
+                
+                if legacy {
+                    try? distIphoneos.mkpath()
+                    try? distSimulator.mkpath()
                 }
-            }
-		}
-		if let recipes = projectSpecData?.toolchain_recipes {
-			let extra = ReleaseAssetDownloader.KivyExtra(recipes: recipes)
-			if let assets = try await extra.downloadFiles() {
-				for asset in assets {
-					
-					
-					let name = asset.lastPathComponent
-					
-					if name.contains("site") {
-						try await unpackAsset(src: .init(asset.path()), to: mainSiteFolder)
-					}
-					
+                let kivy_core = ReleaseAssetDownloader.KivyCore()
+                
+                
+                for asset in try await kivy_core.downloadFiles(legacy: legacy) ?? [] {
+                    
+                    //let url: URL = try await download(url: asset)
+                    
+                    if asset.lastPathComponent.contains("site") {
+                        try await unpackAsset(src: .init(asset.path()), to: target_type.resources(current: workingDir, ios_only: ios_only))
+                    }
                     if legacy {
-                        if name.contains("dist") {
-                            try await unpackAsset(src: .init(asset.path()), to: distFolder)
+                        if asset.lastPathComponent.contains("dist") {
+                            try await unpackDistAssets(src: .init(asset.path()), to: distFolder)
+                            
                         }
                     }
-					
-				}
-			}
-		}
+                }
+                if let recipes = projectSpecData?.toolchain_recipes {
+                    let extra = ReleaseAssetDownloader.KivyExtra(recipes: recipes)
+                    if let assets = try await extra.downloadFiles(legacy: legacy) {
+                        for asset in assets {
+                            
+                            
+                            let name = asset.lastPathComponent
+                            
+                            if name.contains("site") {
+                                try await unpackAsset(src: .init(asset.path()), to: target_type.site_packages(current: workingDir, ios_only: ios_only))
+                            }
+                            
+                            if legacy {
+                                if name.contains("dist") {
+                                    try await unpackAsset(src: .init(asset.path()), to: distFolder)
+                                }
+                            }
+                            
+                        }
+                    }
+                }
+            case .macOS:
+                break
+            }
+        }
+        
+        
         
 		try await postStructure()
 	}
@@ -373,7 +452,14 @@ public class KivyProject: PSProjectProtocol {
 			
 			print("pip installing: \(reqPath)")
 			
-			pipInstall(reqPath, site_path: mainSiteFolder)
+            for target_type in target_types {
+                switch target_type {
+                case .iOS:
+                    pipInstall(reqPath, site_path: target_type.site_packages(current: workingDir, ios_only: ios_only))
+                case .macOS:
+                    pipInstall(reqPath, site_path: target_type.site_packages(current: workingDir, ios_only: ios_only))
+                }
+            }
 		}
         
         
@@ -386,66 +472,94 @@ public class KivyProject: PSProjectProtocol {
         }
         
         if let kivy_requirements = psp_bundle.path(forResource: "kivy_requirements", withExtension: "txt") {
-            pipInstall(kivy_requirements, site_path: mainSiteFolder)
+            for target_type in target_types {
+                switch target_type {
+                case .iOS:
+                    pipInstall(kivy_requirements, site_path: target_type.site_packages(current: workingDir, ios_only: ios_only))
+                case .macOS:
+                    //
+                    pipInstall(pip: "https://files.pythonhosted.org/packages/f7/02/c76a94480adcb93e4da1b393a8eb392914b5812a5a5aa5bdb401c03571c7/Kivy-2.3.1-cp311-cp311-macosx_10_15_universal2.whl", site_path: target_type.site_packages(current: workingDir, ios_only: ios_only))
+                }
+            }
         } else { fatalError("kivy_requirements.txt is missing")}
+        
+        //let workingDir = ios_only ? workingDir : workingDir + "iOS"
+        //let resourcesPath = workingDir + "Resources"
+//        try? workingDir.mkpath()
+//        try? resourcesPath.mkdir()
         
 		let kivyAppFiles: Path = workingDir + "KivyAppFiles"
 		if kivyAppFiles.exists {
 			try kivyAppFiles.delete()
 		}
+        
+        
 		workingDir.chdir {
 			gitClone("https://github.com/PythonSwiftLink/KivyAppFiles")
 		}
 		
-		let sourcesPath = current + "Sources"
+        let sourcesPath = workingDir + "Sources"
 		if sourcesPath.exists {
 			try sourcesPath.delete()
 		}
 		try (kivyAppFiles + "Sources").move(sourcesPath)
 		
-		if let spec = projectSpec {
+        if !ios_only {
+            for target_type in target_types {
+                let sources = target_type.sources(current: workingDir, ios_only: ios_only)
+                try sourcesPath.copy(sources)
+            }
+        }
+        
+        if let spec = projectSpecData {
+            for target_type in target_types {
+                try? loadRequirementsFiles(from: spec, site_path: target_type.resources(current: workingDir, ios_only: ios_only))
+                
+                var imports = [String]()
+                var pyswiftProducts = [String]()
+                
+                
+                if try! loadPythonPackageInfo(from: projectSpecData, imports: &imports, pyswiftProducts: &pyswiftProducts) {
+                    
+                    let mainFile = target_type.sources(current: workingDir, ios_only: ios_only) + "Main.swift"
+                    let newMain = ModifyMainFile(source: try mainFile.read(), imports: imports, pyswiftProducts: pyswiftProducts)
+                    try! mainFile.write(newMain, encoding: .utf8)
+                }
+            }
 			
-			try? loadRequirementsFiles(from: spec, site_path: mainSiteFolder)
-			
-			var imports = [String]()
-			var pyswiftProducts = [String]()
-			
-			
-			if try! loadPythonPackageInfo(from: spec, imports: &imports, pyswiftProducts: &pyswiftProducts) {
-				
-				let mainFile = sourcesPath + "Main.swift"
-				let newMain = ModifyMainFile(source: try mainFile.read(), imports: imports, pyswiftProducts: pyswiftProducts)
-				try! mainFile.write(newMain, encoding: .utf8)
-			}
 		}
 		
 		//try? (kivyAppFiles + "dylib-Info-template.plist").move(resourcesPath + "dylib-Info-template.plist")
-		
-        if let spec = projectSpecData {
+        for target_type in target_types {
+            let resourcesPath = target_type.resources(current: workingDir, ios_only: ios_only)
             
-            if let icon = spec.icon {
-                try? icon.copy(resourcesPath + "icon.png")
+            if let spec = projectSpecData {
+                
+                if let icon = spec.icon {
+                    try? icon.copy(resourcesPath + "icon.png")
+                } else {
+                    try? (kivyAppFiles + "icon.png").copy(resourcesPath + "icon.png")
+                }
+                
+                if let imageset = spec.imageset {
+                    try? imageset.copy(resourcesPath + "Images.xcassets")
+                } else {
+                    try? (kivyAppFiles + "Images.xcassets").copy(resourcesPath + "Images.xcassets")
+                }
+                
+                if let launch_screen = spec.launch_screen {
+                    try launch_screen.copy(resourcesPath + "Launch Screen.storyboard")
+                } else {
+                    try? (kivyAppFiles + "Launch Screen.storyboard").copy(resourcesPath + "Launch Screen.storyboard")
+                }
+                
             } else {
-                try? (kivyAppFiles + "icon.png").move(resourcesPath + "icon.png")
+                try? (kivyAppFiles + "Launch Screen.storyboard").copy(resourcesPath + "Launch Screen.storyboard")
+                try? (kivyAppFiles + "Images.xcassets").copy(resourcesPath + "Images.xcassets")
+                try? (kivyAppFiles + "icon.png").copy(resourcesPath + "icon.png")
             }
-            
-            if let imageset = spec.imageset {
-                try? imageset.copy(resourcesPath + "Images.xcassets")
-            } else {
-                try? (kivyAppFiles + "Images.xcassets").move(resourcesPath + "Images.xcassets")
-            }
-            
-            if let launch_screen = spec.launch_screen {
-                try launch_screen.copy(resourcesPath + "Launch Screen.storyboard")
-            } else {
-                try? (kivyAppFiles + "Launch Screen.storyboard").move(resourcesPath + "Launch Screen.storyboard")
-            }
-            
-        } else {
-            try? (kivyAppFiles + "Launch Screen.storyboard").move(resourcesPath + "Launch Screen.storyboard")
-            try? (kivyAppFiles + "Images.xcassets").move(resourcesPath + "Images.xcassets")
-            try? (kivyAppFiles + "icon.png").move(resourcesPath + "icon.png")
         }
+        
 		
 		
 		if local_py_src {
@@ -507,137 +621,7 @@ public class KivyProject: PSProjectProtocol {
         //try? extract_folder.delete()
     }
 	
-	public func c_reateStructure() async throws {
-		let current = workingDir
-		
-		try? (current + "Resources/YourApp").mkpath()
-		try? (current + "wrapper_sources").mkdir()
-		try? distIphoneos.mkpath()
-		try? distSimulator.mkpath()
-		//try? (current + "dist_lib/iphoneos").mkpath()
-		//try? (current + "dist_lib/iphonesimulator").mkpath()
-		//try? (current + "Resources").mkdir()
-		//let downloadsPath = Path(Bundle.module.path(forResource: "downloads", ofType: "yml")!)
-		
-		guard 
-			let psp_bundle = Bundle(path: (app_path + "PythonSwiftProject_PSProjectGen.bundle").string ),
-			let _downloads = psp_bundle.path(forResource: "downloads", ofType: "yml")
-		else {
-			print("could not locate \((app_path + "PythonSwiftProject_PSProjectGen.bundle").string)")
-			return
-		}
-		
-		let downloadsPath = Path(_downloads)
-		let downloader = try YAMLDecoder().decode([String:AssetsDownloader].self, from: downloadsPath.read())
-		
-		for (rootKey,asset) in downloader {
-			try await asset.downloadAssets {[unowned self] key, download in
-				
-				switch download {
-				case let site_folder where site_folder.lastComponent.contains("site"):
-					print("site folder for \(rootKey) \n\t-> \(site_folder.string)")
-					try? site_folder.move(resourcesPath + site_folder.lastComponent)
-					print("\t\tmoving \(key) \n\t\t\t-> \((resourcesPath + site_folder.lastComponent).string)")
-				case let dist_folder where dist_folder.lastComponent.contains("dist"):
-					print("dist folder for \(rootKey) \n\t-> \(dist_folder.string)")
-					for a in dist_folder.iphoneos.filter({$0.extension == "a"}) {
-						try? a.move(distIphoneos + a.lastComponent)
-					}
-					for a in dist_folder.iphonesimulator.filter({$0.extension == "a"}) {
-						try? a.move(distSimulator + a.lastComponent)
-					}
-//				case let python_stdlib where python_stdlib.lastComponent.contains("stdlib"):
-//					print("python-stdlib for \(rootKey) \n\t-> \(python_stdlib.string)")
-//					try? python_stdlib.move(resourcesPath + python_stdlib.lastComponent)
-//					print("\t\tmoving \(key) \n\t\t\t-> \((resourcesPath + python_stdlib.lastComponent).string)")
-				default: print("unknown \n\t-> \(download.string)")
-				}
 
-			}
-		}
-		//print(Bundle.module.bundlePath)		
-		//fatalError("lets stop here")
-		//try! await DistFilesDownload(target: .kivy, working_dir: current).downloadTargetAndExtract()
-		//try! await DistFilesDownload(target: .numpy, working_dir: current).downloadTargetAndExtract()
-		
-		//let python_lib = try await Path.pythonLib(workingDir: workingDir)
-//		let move_lib: Path = pythonLibPath //current + "lib"
-//		if move_lib.exists {
-//			try move_lib.delete()
-//		}
-//		try python_lib.move(move_lib)
-//		
-		// pip installs
-		if let requirements = requirements {
-			//let site_path: Path = move_lib + "python3.10/site-packages"
-			let reqPath: Path
-			//if requirements.hasPrefix("/") || requirements.hasPrefix(".") {
-			reqPath = requirements
-			//} else {
-				//reqPath = current + requirements
-			//}
-				
-			print("pip installing: \(reqPath)")
-			
-			pipInstall(reqPath, site_path: mainSiteFolder)
-		}
-		
-		for site_folder in site_folders {
-			try patchPythonLib(pythonLib: site_folder, dist: distFolder)
-		}
-		
-		
-		let kivyAppFiles: Path = workingDir + "KivyAppFiles"
-		if kivyAppFiles.exists {
-			try kivyAppFiles.delete()
-		}
-		workingDir.chdir {
-			gitClone("https://github.com/PythonSwiftLink/KivyAppFiles")
-		}
-		
-		let sourcesPath = current + "Sources"
-		if sourcesPath.exists {
-			try sourcesPath.delete()
-		}
-		try (kivyAppFiles + "Sources").move(sourcesPath)
-		
-		if let spec = projectSpec {
-			
-			try? loadRequirementsFiles(from: spec, site_path: mainSiteFolder)
-			
-			var imports = [String]()
-			var pyswiftProducts = [String]()
-			
-			
-			if try! loadPythonPackageInfo(from: spec, imports: &imports, pyswiftProducts: &pyswiftProducts) {
-				
-				let mainFile = sourcesPath + "Main.swift"
-				let newMain = ModifyMainFile(source: try mainFile.read(), imports: imports, pyswiftProducts: pyswiftProducts)
-				try! mainFile.write(newMain, encoding: .utf8)
-			}
-		}
-		
-		//try? (kivyAppFiles + "dylib-Info-template.plist").move(resourcesPath + "dylib-Info-template.plist")
-		try? (kivyAppFiles + "Launch Screen.storyboard").move(resourcesPath + "Launch Screen.storyboard")
-		try? (kivyAppFiles + "Images.xcassets").move(resourcesPath + "Images.xcassets")
-		try? (kivyAppFiles + "icon.png").move(resourcesPath + "icon.png")
-		
-		if local_py_src {
-			try? (current + "py_src").mkdir()
-		} else {
-			//try Path(py_src).symlink((current + "py_src"))
-			try? (current + "py_src").symlink(py_src)
-		}
-		// clean up
-		
-		if kivyAppFiles.exists {
-			try! kivyAppFiles.delete()
-		}
-		for target in _targets {
-			try! await target.build()
-		}
-	}
-	
 	public func project() async throws -> ProjectSpec.Project {
 		return Project(
 			basePath: workingDir,
@@ -779,9 +763,9 @@ public class KivyProject: PSProjectProtocol {
 //	
 //	var dependencies: [Dependency] {
 //		[
-//			.init(type: .package(product: "PySwiftObject"), reference: "KivySwiftLink"),
-//			.init(type: .package(product: "PythonSwiftCore"), reference: "KivySwiftLink"),
-//			.init(type: .package(product: "KivyLauncher"), reference: "KivySwiftLink"),
+//			.init(type: .package(product: "PySwiftObject"), reference: "kv-swift"),
+//			.init(type: .package(product: "PythonSwiftCore"), reference: "kv-swift"),
+//			.init(type: .package(product: "KivyLauncher"), reference: "kv-swift"),
 //		]
 //	}
 //	

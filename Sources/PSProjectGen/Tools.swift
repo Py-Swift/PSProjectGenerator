@@ -56,3 +56,20 @@ func pipInstall(_ requirements: Path, site_path: Path) -> String {
 	print(output)
 	return output
 }
+
+@discardableResult
+func pipInstall(pip: String, site_path: Path) -> String {
+    let task = Process()
+    let pipe = Pipe()
+    task.standardOutput = pipe
+    task.standardError = pipe
+    task.arguments = ["install", pip, "-t", site_path.string]
+    task.executablePath = try? which_pip3()
+    task.standardInput = nil
+    task.launch()
+    
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    let output = String(data: data, encoding: .utf8)!
+    print(output)
+    return output
+}

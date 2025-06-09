@@ -20,12 +20,13 @@ public struct SwiftPackageData: Decodable {
 		let products: [String]
 		let modules: [String]
 	}
-	
+    let products: [String]?
 	let url: String?
 	let path: String?
 	let branch: String?
-	let from: String?
+	let version: String?
 	let python_imports: PythonImports?
+   
 }
 
 extension Path: @retroactive Decodable {
@@ -65,6 +66,8 @@ public struct SpecData: Decodable {
     let icon: Path?
     let imageset: Path?
     let launch_screen: Path?
+    
+    let main_swift: Path?
 }
 
 fileprivate let newSpecFilePy = """
@@ -84,7 +87,8 @@ class ProjectSpec:
     # icon = "your_path/icon.png"
     # imageset = "your_path/Images.xcassets"
     # launch_screen = "your_path/Launch Screen.storyboard"
-
+    # main_swift = "your_path/Main.swift"
+    
     packages = {
         # "PyCoreBluetooth" : {
         #     "url": "https://github.com/KivySwiftPackages/PyCoreBluetooth",
@@ -174,15 +178,14 @@ extension PathKit.Path {
 }
 
 import PyCodable
-import PythonCore
-import PySwiftCore
+import PySwiftKit
 import PyExecute
 fileprivate func pyDecode(path: Path) throws -> SpecData {
     try launchPython()
     let module = PyDict_New()!
     let code = try path.read(.utf8)
     PyRun_String(string: code, flag: .file, globals: module, locals: module)?.decref()
-    guard let project = PyObject_GetAttr(module, "project") else {
+    guard let project = PyDict_GetItemString(module, "project") else {
         PyErr_Print()
         fatalError("module has no project variable")
     }

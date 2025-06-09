@@ -106,7 +106,7 @@ extension PythonSwiftProjectCLI.Kivy {
 		
 		@Option(name: .short) var requirements: Path?
 		
-		@Option(name: .short) var swift_packages: String?
+		@Option(name: .short) var spec_file: Path?
 		
 		@Flag(name: .short) var forced: Bool = false
         
@@ -115,16 +115,26 @@ extension PythonSwiftProjectCLI.Kivy {
 		func run() async throws {
 //			try await GithubAPI(owner: "PythonSwiftLink", repo: "KivyCore").handleReleases()
 //			return
-            
+            var spec_file = spec_file
             
             guard let app_path = getAppLocation()?.parent() else { fatalError("App Folder not found")}
             
             var src: Path? = python_src
+            let current = Path.current
             
+            if spec_file == nil {
+                switch current {
+                case let py_spec where (py_spec + "projectSpec.py").exists:
+                    spec_file = (py_spec + "projectSpec.py")
+                case let yml_spec where (yml_spec + "projectSpec.yml").exists:
+                    spec_file = (yml_spec + "projectSpec.yml")
+                default: break
+                }
+            }
             // check if relative and create full path to it..
             if let python_src {
                 if python_src.isRelative {
-                    src = Path.current + python_src.lastComponent
+                    src = current + python_src.lastComponent
                 }
             }
             // check if parh actually exist else do fatalError
@@ -138,16 +148,17 @@ extension PythonSwiftProjectCLI.Kivy {
 			}
 			try? projDir.mkdir()
 			//chdir(projDir.string)
-			let projectSpec: Path? = if let swift_packages = swift_packages {.init(swift_packages)} else { nil }
+            
 			let proj = try await KivyProject(
 				name: name,
 				py_src: src,
                 requirements: requirements,
 				//projectSpec: swift_packages == nil ? nil : .init(swift_packages!),
-				projectSpec: projectSpec,
+                projectSpec: spec_file,
                 workingDir: projDir,
                 app_path: app_path,
-                legacy: legacy
+                legacy: legacy,
+                ios_only: true
 			)
 			
 			try await proj.createStructure()

@@ -58,7 +58,7 @@ func downloadZipUnPacked(url: URL, dst: Path) async throws -> Path {
 //}
 
 public protocol KSLReleaseProtocol {
-	func downloadFiles() async throws -> [URL]?
+    func downloadFiles(legacy: Bool) async throws -> [URL]?
 }
 
 public struct ReleaseAssetDownloader {
@@ -70,15 +70,18 @@ public struct ReleaseAssetDownloader {
 		}
 		
 		
-		func downloadFiles() async throws -> [URL]? {
+        func downloadFiles(legacy: Bool) async throws -> [URL]? {
 			var outputs = [URL]()
-			let kivy_release = try await loadGithub(owner: "KivySwiftLink", repo: "KivyCore")
+			let kivy_release = try await loadGithub(owner: "kv-swift", repo: "KivyCore")
 			if let release = kivy_release.releases.first  {
 				let zips = release.assets.compactMap { r in
 					switch r.name {
-					case "site-packages.zip", "dist_files.zip":
+					case "site-packages.zip":
 						
 						return URL(string: r.browser_download_url )
+                    case "dist_files.zip":
+                        if !legacy { return nil }
+                        return URL(string: r.browser_download_url )
 					default: return nil
 					}
 					
@@ -105,7 +108,7 @@ public struct ReleaseAssetDownloader {
 		}
 		
 		
-		func downloadFiles() async throws -> [URL]? {
+        func downloadFiles(legacy: Bool) async throws -> [URL]? {
 			guard let kivy_release = try await loadGithub(owner: "PythonSwiftLink", repo: "KivyExtra").releases.first else {
 				return nil
 			}

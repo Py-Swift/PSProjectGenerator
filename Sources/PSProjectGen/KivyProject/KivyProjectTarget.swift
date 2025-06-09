@@ -23,7 +23,7 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 	
 	var dist_lib: Path
 	
-	public var projectSpec: Path?
+    public var projectSpec: SpecData?
 	//	var projectSpec: SpecData?
 	
 	let workingDir: Path
@@ -31,14 +31,16 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 	let pythonLibPath: Path
 	let app_path: Path
     let legacy: Bool
+    let ios_only: Bool
 	
 	weak var project: KivyProject?
 	
 	
 	
-    public init(name: String, py_src: Path, dist_lib: Path, projectSpec: Path?, workingDir: Path, app_path: Path, legacy: Bool) async throws {
+    public init(name: String, py_src: Path, dist_lib: Path, projectSpec: SpecData?, workingDir: Path, app_path: Path, legacy: Bool, ios_only: Bool = true) async throws {
 		self.name = name
-		self.workingDir = workingDir
+        self.ios_only = ios_only
+        self.workingDir = ios_only ? workingDir : workingDir + "iOS"
 		self.app_path = app_path
 		let resources = workingDir + "Resources"
 		self.resourcesPath = resources
@@ -61,7 +63,7 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 			"OTHER_LDFLAGS": "-all_load",
 			"ENABLE_BITCODE": false
 		]
-		if let projectSpec = projectSpec {
+        if let projectSpec = project?.projectSpecData {
 			try loadBuildConfigKeys(from: projectSpec, keys: &configDict)
 		}
 		
@@ -86,30 +88,34 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 			
 			return (current + "Sources")
 		}
-		
-		var pips: [ProjectSpec.TargetSource] = [
-			TargetSource(path: (sourcesPath).string, type: .group),
-			.init(path: "Resources/YourApp", group: "Resources", type: .file, buildPhase: .resources, createIntermediateGroups: true),
+		let target_group = "iOS"
+        let res_group = ios_only ? "Resources" : "\(target_group)/Resources"
+		var sources: [ProjectSpec.TargetSource] = [
+            //.init(path: target_group, name: target_group, type: .group, createIntermediateGroups: true),
+            
+            //.init(path: "iOS/Resources",name: "Resources", group: target_group, type: .group),
+            .init(path: "\(res_group)/YourApp", type: .file, buildPhase: .resources, createIntermediateGroups: true),
 			//.init(path: pythonLibPath.string, group: "Resources", type: .file, buildPhase: .resources, createIntermediateGroups: true),
-			.init(path: "Resources/site-packages", name: "site-packages", type: .file, buildPhase: .resources ,createIntermediateGroups: true),
-			.init(path: "Resources/Launch Screen.storyboard"),
-			.init(path: "Resources/Images.xcassets"),
-			.init(path: "Resources/icon.png"),
+            .init(path: "\(res_group)/site-packages", type: .file, buildPhase: .resources ),
+            .init(path: "\(res_group)/Launch Screen.storyboard", group: res_group),
+            .init(path: "\(res_group)/Images.xcassets", group: res_group),
+            .init(path: "\(res_group)/icon.png", group: res_group),
+            
+            .init(path: (sourcesPath).string, group: ios_only ? nil : target_group, type: .group),
 		]
 		
 		if let projectSpec = projectSpec {
-			try loadExtraPipFolders(from: projectSpec, pips: &pips)
+			try loadExtraPipFolders(from: projectSpec, pips: &sources)
 		}
 		
-		return pips
+        return sources
 	}
 	
 	public func dependencies() async throws -> [ProjectSpec.Dependency] {
 		var output: [ProjectSpec.Dependency] = [
-			//			.init(type: .package(product: "PySwiftObject"), reference: "KivySwiftLink"),
-			//			.init(type: .package(product: "PythonSwiftCore"), reference: "KivySwiftLink"),
+			//			.init(type: .package(product: "PySwiftObject"), reference: "kv-swift"),
+			//			.init(type: .package(product: "PythonSwiftCore"), reference: "kv-swift"),
 			
-			.init(type: .package(products: ["KivyLauncher"]), reference: "KivySwiftLink"),
 			.init(type: .package(products: ["SwiftonizeModules"]), reference: "PySwiftKit"),
             .init(type: .package(products: ["PythonCore"]), reference: "PythonCore"),
 			//.init(type: .package(products: ["KivyCore"]), reference: "KivyCore"),
@@ -157,22 +163,23 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 	}
 	
 	public func preBuildScripts() async throws -> [ProjectSpec.BuildScript] {
-		[
-			.init(
-				script: .script("""
-	rsync -av --delete "\(pythonProject)"/ "$PROJECT_DIR"/Resources/YourApp
-	"""),
+        let YourApp = "\(ios_only ? "" : "iOS/")Resources/YourApp"
+		return [
+            .init(
+                script: .script("""
+    rsync -av --delete "\(pythonProject)"/ "$PROJECT_DIR"/\(YourApp)
+    """),
 				name: "Sync Project"
 			),
 			.init(
 				script: .script("""
-	python3.11 -m compileall -f -b "$PROJECT_DIR"/Resources/YourApp
+	python3.11 -m compileall -f -b "$PROJECT_DIR"/\(YourApp)
 	"""),
 				name: "Compile Python Files"
 			),
 			.init(
 				script: .script("""
-	find "$PROJECT_DIR"/Resources/YourApp/ -regex '.*\\.py' -delete
+	find "$PROJECT_DIR"/\(YourApp)/ -regex '.*\\.py' -delete
 	"""),
 				name: "Delete .py leftovers"
 			)
@@ -208,16 +215,16 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 	
 	public func target() async throws -> ProjectSpec.Target {
 		let output = Target(
-			name: name,
+			name: ios_only ? name : "iOS",
 			type: .application,
 			platform: .iOS,
 			productName: name,
 			deploymentTarget: .init("13.0"),
-			settings: try await projSettings(),
-			configFiles: try await configFiles(),
-			sources: try await sources(),
-			dependencies: try await dependencies(),
-			info: try await info(),
+			settings: try! await projSettings(),
+			configFiles: try! await configFiles(),
+			sources: try! await sources(),
+			dependencies: try! await dependencies(),
+			info: try! await info(),
 			entitlements: nil,
 			transitivelyLinkDependencies: false,
 			directlyEmbedCarthageDependencies: false,
