@@ -14,7 +14,7 @@ on:
 jobs:
   mainjob1:
     #runs-on: macos-13
-    runs-on: macos-latest
+    runs-on: macos-14
     #runs-on: self-hosted
     outputs:
       sha: ${{ steps.shasum.outputs.var }}
@@ -24,6 +24,10 @@ jobs:
       contents: write
       
     steps:
+      - name: Setup Xcode version
+        uses: maxim-lobanov/setup-xcode@v1.6.0
+        with:
+          xcode-version: 16.2
       - uses: actions/checkout@v4
       - name: Build x86_64    
         run: swift build -c release --disable-sandbox --arch x86_64 --product PSProjectCLI
