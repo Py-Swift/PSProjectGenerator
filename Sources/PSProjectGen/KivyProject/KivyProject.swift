@@ -310,38 +310,30 @@ public class KivyProject: PSProjectProtocol {
       
 		try! await releases.handleReleases()
 		guard let latest = releases.releases.first else { throw CocoaError(.coderReadCorrupt) }
-		
-		var output: [String : ProjectSpec.SwiftPackage] = [
-//			"SwiftonizePlugin": .remote(
-//				url: "https://github.com/pythonswiftlink/SwiftonizePlugin",
-//				versionRequirement: .upToNextMajorVersion("0.0.2")
-//			),
-//			"PythonCore": .remote(
-//				url: "https://github.com/kv-swift/PythonCore",
-//				versionRequirement: .exact(latest.tag_name)
-//			),
-            "PythonCore": .local(path: "/Volumes/CodeSSD/PythonSwiftGithub/PythonCore", group: nil, excludeFromProject: false),
-//			"KivyCore": .remote(
-//				url: "https://github.com/kv-swift/KivyCore",
-//				versionRequirement: .exact(latest.tag_name)
-//			),
-//			"PythonSwiftLink": .remote(
-//				url: "https://github.com/kv-swift/PythonSwiftLink",
-//				versionRequirement: .upToNextMajorVersion("311.0.0")
-//			),
-//            "PySwiftKit": .remote(
-//                url: "https://github.com/kv-swift/PySwiftKit",
-//                versionRequirement: .upToNextMajorVersion("311.0.0")
-//            ),
-            "PySwiftKit": .local(path: "/Volumes/CodeSSD/PythonSwiftGithub/PySwiftKit", group: nil, excludeFromProject: false),
-
-//			"KivyLauncher": .remote(
-//				url: "https://github.com/kv-swift/KivyLauncher",
-//				versionRequirement: .branch("master")
-//			),
-            "KivyLauncher": .local(path: "/Volumes/CodeSSD/PythonSwiftGithub/KivyLauncher", group: nil, excludeFromProject: false),
-
-		]
+		let local = false
+        var output: [String : ProjectSpec.SwiftPackage] = if local {
+            [
+                "PythonCore": .local(path: "/Volumes/CodeSSD/PythonSwiftGithub/PythonCore", group: nil, excludeFromProject: false),
+                "PySwiftKit": .local(path: "/Volumes/CodeSSD/PythonSwiftGithub/PySwiftKit", group: nil, excludeFromProject: false),
+                "KivyLauncher": .local(path: "/Volumes/CodeSSD/PythonSwiftGithub/KivyLauncher", group: nil, excludeFromProject: false),
+                
+            ]
+        } else {
+            [
+                "PythonCore": .remote(
+                    url: "https://github.com/kv-swift/PythonCore",
+                    versionRequirement: .exact(latest.tag_name)
+                ),
+                "PySwiftKit": .remote(
+                    url: "https://github.com/kv-swift/PySwiftKit",
+                    versionRequirement: .upToNextMajorVersion("311.0.0")
+                ),
+                "KivyLauncher": .remote(
+                    url: "https://github.com/kv-swift/KivyLauncher",
+                    versionRequirement: .branch("master")
+                ),
+            ]
+        }
         if let packageSpec = projectSpecData {
 			try! loadSwiftPackages(from: packageSpec, output: &output)
 		}

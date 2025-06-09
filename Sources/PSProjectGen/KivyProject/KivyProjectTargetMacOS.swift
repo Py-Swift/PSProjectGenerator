@@ -133,15 +133,16 @@ public class KivyProjectTargetMacOS: PSProjTargetProtocol {
     
     public func info() async throws -> ProjectSpec.Plist {
         var mainkeys: [String:Any] = [
-            "UILaunchStoryboardName": "Launch Screen",
-            "UIRequiresFullScreen": true
+            //"UILaunchStoryboardName": "Launch Screen",
+            //"UIRequiresFullScreen": true
+            :
         ]
-        if
-            let psp_bundle = Bundle(path: (app_path + "PythonSwiftProject_PSProjectGen.bundle").string ),
-            let _project_plist_keys = psp_bundle.path(forResource: "project_plist_keys", ofType: "yml")
-        {
-            try loadBasePlistKeys(from: .init(filePath: _project_plist_keys), keys: &mainkeys)
-        }
+//        if
+//            let psp_bundle = Bundle(path: (app_path + "PythonSwiftProject_PSProjectGen.bundle").string ),
+//            let _project_plist_keys = psp_bundle.path(forResource: "project_plist_keys", ofType: "yml")
+//        {
+//            try loadBasePlistKeys(from: .init(filePath: _project_plist_keys), keys: &mainkeys)
+//        }
 //        if let projectPkeys = Bundle.module.url(forResource: "project_plist_keys", withExtension: "yml") {
 //            try loadBasePlistKeys(from: projectPkeys, keys: &mainkeys)
 //        }
