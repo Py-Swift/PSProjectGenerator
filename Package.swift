@@ -22,7 +22,8 @@ let package = Package(
         //.package(url: "https://github.com/PythonSwiftLink/PyCodable", .upToNextMajor(from: "0.0.1")),
         .package(url: "https://github.com/py-swift/PySwiftKit", .upToNextMajor(from: "311.0.0")),
         //.package(url: "https://github.com/PythonSwiftLink/PythonCore", .upToNextMajor(from: "311.0.0")),
-		.package(path: "/Volumes/CodeSSD/PythonSwiftGithub/PyCodable")
+        .package(url: "https://github.com/py-swift/PyCodable", .upToNextMajor(from: "0.0.0")),
+		//.package(path: "/Volumes/CodeSSD/PythonSwiftGithub/PyCodable")
 		//.package(url: "https://github.com/PythonSwiftLink/SwiftPackageGen", from: .init(0, 0, 3)),
 		//.package(path: "/Volumes/CodeSSD/XcodeGithub/SwiftPackageGen")
 		
