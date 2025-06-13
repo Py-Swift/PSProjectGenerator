@@ -26,16 +26,18 @@ public class KivyProjectTargetMacOS: PSProjTargetProtocol {
     let pythonLibPath: Path
     let app_path: Path
     let legacy: Bool
-    let ios_only: Bool
+    let macos_only: Bool
     
     weak var project: KivyProject?
     
+    let target_type = ProjectTarget.macOS
     
     
-    public init(name: String, py_src: Path, dist_lib: Path, projectSpec: SpecData?, workingDir: Path, app_path: Path, legacy: Bool, ios_only: Bool = true) async throws {
+    
+    public init(name: String, py_src: Path, dist_lib: Path, projectSpec: SpecData?, workingDir: Path, app_path: Path, legacy: Bool, macos_only: Bool = true) async throws {
         self.name = name
-        self.ios_only = ios_only
-        self.workingDir = ios_only ? workingDir : workingDir + "macOS"
+        self.macos_only = macos_only
+        self.workingDir = macos_only ? workingDir : workingDir + "macOS"
         self.app_path = app_path
         let resources = workingDir + "Resources"
         self.resourcesPath = resources
@@ -56,7 +58,8 @@ public class KivyProjectTargetMacOS: PSProjTargetProtocol {
             ] + ( legacy ? [dist_lib] : []),
             "SWIFT_VERSION": "5.0",
             "OTHER_LDFLAGS": "-all_load",
-            "ENABLE_BITCODE": false
+            "ENABLE_BITCODE": false,
+            "PRODUCT_NAME": "$(PROJECT_NAME)"
         ]
         if let projectSpec = project?.projectSpecData {
             try loadBuildConfigKeys(from: projectSpec, keys: &configDict)
@@ -84,19 +87,20 @@ public class KivyProjectTargetMacOS: PSProjTargetProtocol {
             return (current + "Sources")
         }
         let target_group = "macOS"
-        let res_group = ios_only ? "Resources" : "\(target_group)/Resources"
+        let res_group = macos_only ? "Resources" : "\(target_group)/Resources"
         var sources: [ProjectSpec.TargetSource] = [
             //.init(path: target_group, name: target_group, type: .group, createIntermediateGroups: true),
             
             //.init(path: "macOS/Resources",name: "Resources", group: target_group, type: .group),
             .init(path: "\(res_group)/YourApp", type: .file, buildPhase: .resources, createIntermediateGroups: true),
+            .init(path: "\(res_group)/lib", type: .file, buildPhase: .resources),
             //.init(path: pythonLibPath.string, group: "Resources", type: .file, buildPhase: .resources, createIntermediateGroups: true),
             .init(path: "\(res_group)/site-packages", type: .file, buildPhase: .resources ),
-            .init(path: "\(res_group)/Launch Screen.storyboard", group: res_group),
+            //.init(path: "\(res_group)/Launch Screen.storyboard", group: res_group),
             .init(path: "\(res_group)/Images.xcassets", group: res_group),
             .init(path: "\(res_group)/icon.png", group: res_group),
             
-            .init(path: (sourcesPath).string, group: ios_only ? nil : target_group, type: .group),
+            .init(path: (sourcesPath).string, group: macos_only ? nil : target_group, type: .group),
         ]
         
         if let projectSpec = projectSpec {
@@ -152,20 +156,20 @@ public class KivyProjectTargetMacOS: PSProjTargetProtocol {
             try loadInfoPlistInfo(from: packageSpec, plist: &extraKeys)
             
             mainkeys.merge(extraKeys)
-            return .init(path: "Info.plist", attributes: mainkeys)
         }
         
-        return .init(path: "Info.plist", attributes: mainkeys)
+        return .init(path: "\(macos_only ? "" : "macOS/")Info.plist", attributes: mainkeys)
     }
     
     public func preBuildScripts() async throws -> [ProjectSpec.BuildScript] {
-        let YourApp = "\(ios_only ? "" : "macOS/")Resources/YourApp"
+        let YourApp = "\(macos_only ? "" : "macOS/")Resources/YourApp"
         return [
             .init(
                 script: .script("""
     rsync -av --delete "\(pythonProject)"/ "$PROJECT_DIR"/\(YourApp)
     """),
-                name: "Sync Project"
+                name: "Sync Project",
+                basedOnDependencyAnalysis: false
             ),
             .init(
                 script: .script("""
@@ -178,7 +182,8 @@ public class KivyProjectTargetMacOS: PSProjTargetProtocol {
     find "$PROJECT_DIR"/\(YourApp)/ -regex '.*\\.py' -delete
     """),
                 name: "Delete .py leftovers"
-            )
+            ),
+            
         ]
     }
     
@@ -190,16 +195,7 @@ public class KivyProjectTargetMacOS: PSProjTargetProtocol {
     
     public func postCompileScripts() async throws -> [ProjectSpec.BuildScript] {
         [
-            .init(
-                script: .script("""
-    set -e
-    echo "Signed as $EXPANDED_CODE_SIGN_IDENTITY_NAME ($EXPANDED_CODE_SIGN_IDENTITY)"
-    find "$BUILT_PRODUCTS_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/python-stdlib/lib-dynload" -name "*.so" -exec /usr/bin/codesign --force --sign "$EXPANDED_CODE_SIGN_IDENTITY" -o runtime --timestamp=none --preserve-metadata=identifier,entitlements,flags --generate-entitlement-der {} \\; 
-    #find "$BUILT_PRODUCTS_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/app_packages" -name "*.so" -exec /usr/bin/codesign --force --sign "$EXPANDED_CODE_SIGN_IDENTITY" -o runtime --timestamp=none --preserve-metadata=identifier,entitlements,flags --generate-entitlement-der {} \\; 
-    #find "$BUILT_PRODUCTS_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/app" -name "*.so" -exec /usr/bin/codesign --force --sign "$EXPANDED_CODE_SIGN_IDENTITY" -o runtime --timestamp=none --preserve-metadata=identifier,entitlements,flags --generate-entitlement-der {} \\; 
-    """),
-                name: "sign .so"
-            )
+   
         ]
     }
     
@@ -213,6 +209,16 @@ public class KivyProjectTargetMacOS: PSProjTargetProtocol {
 //                script: .script(SIGN_PYTHON_BINARY),
 //                name: "Sign Python Binary Modules"
 //            )
+            .init(
+                script: .script("""
+    set -e
+    echo "Signed as $EXPANDED_CODE_SIGN_IDENTITY_NAME ($EXPANDED_CODE_SIGN_IDENTITY)"
+    find "$BUILT_PRODUCTS_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/lib/python3.11/lib-dynload" -name "*.so" -exec /usr/bin/codesign --force --sign "$EXPANDED_CODE_SIGN_IDENTITY" -o runtime --timestamp=none --preserve-metadata=identifier,entitlements,flags --generate-entitlement-der {} \\;
+    #find "$BUILT_PRODUCTS_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/app_packages" -name "*.so" -exec /usr/bin/codesign --force --sign "$EXPANDED_CODE_SIGN_IDENTITY" -o runtime --timestamp=none --preserve-metadata=identifier,entitlements,flags --generate-entitlement-der {} \\; 
+    #find "$BUILT_PRODUCTS_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/app" -name "*.so" -exec /usr/bin/codesign --force --sign "$EXPANDED_CODE_SIGN_IDENTITY" -o runtime --timestamp=none --preserve-metadata=identifier,entitlements,flags --generate-entitlement-der {} \\; 
+    """),
+                name: "sign .so"
+            )
         ]
     }
     
@@ -222,7 +228,7 @@ public class KivyProjectTargetMacOS: PSProjTargetProtocol {
     
     public func target() async throws -> ProjectSpec.Target {
         let output = Target(
-            name: ios_only ? name : "macOS",
+            name: macos_only ? name : "\(name)-macos",
             type: .application,
             platform: .macOS,
             productName: name,
@@ -254,4 +260,10 @@ public class KivyProjectTargetMacOS: PSProjTargetProtocol {
     }
     
     
+}
+
+extension KivyProjectTargetMacOS {
+    public func prepare() async throws {
+        
+    }
 }

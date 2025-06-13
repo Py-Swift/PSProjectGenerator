@@ -60,7 +60,7 @@ public struct SpecData: Decodable {
 	let packages: [String: SwiftPackageData]?
 	let toolchain_recipes: [String]?
     let packages_dump: [VenvPackages]?
-    
+    let macos_target: Bool?
     // new
     let experimental: Bool?
     let icon: Path?

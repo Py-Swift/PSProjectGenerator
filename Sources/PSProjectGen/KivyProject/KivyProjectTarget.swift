@@ -35,6 +35,7 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 	
 	weak var project: KivyProject?
 	
+    let target_type = ProjectTarget.iOS
 	
 	
     public init(name: String, py_src: Path, dist_lib: Path, projectSpec: SpecData?, workingDir: Path, app_path: Path, legacy: Bool, ios_only: Bool = true) async throws {
@@ -61,7 +62,8 @@ public class KivyProjectTarget: PSProjTargetProtocol {
             ] + ( legacy ? [dist_lib] : []),
 			"SWIFT_VERSION": "5.0",
 			"OTHER_LDFLAGS": "-all_load",
-			"ENABLE_BITCODE": false
+			"ENABLE_BITCODE": false,
+            "PRODUCT_NAME": "$(PROJECT_NAME)"
 		]
         if let projectSpec = project?.projectSpecData {
 			try loadBuildConfigKeys(from: projectSpec, keys: &configDict)
@@ -156,10 +158,10 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 			try loadInfoPlistInfo(from: packageSpec, plist: &extraKeys)
 			
 			mainkeys.merge(extraKeys)
-			return .init(path: "Info.plist", attributes: mainkeys)
+			return .init(path: "\(ios_only ? "" : "iOS/")Info.plist", attributes: mainkeys)
 		}
         
-		return .init(path: "Info.plist", attributes: mainkeys)
+		return .init(path: "\(ios_only ? "" : "iOS/")Info.plist", attributes: mainkeys)
 	}
 	
 	public func preBuildScripts() async throws -> [ProjectSpec.BuildScript] {
@@ -169,7 +171,8 @@ public class KivyProjectTarget: PSProjTargetProtocol {
                 script: .script("""
     rsync -av --delete "\(pythonProject)"/ "$PROJECT_DIR"/\(YourApp)
     """),
-				name: "Sync Project"
+				name: "Sync Project",
+                basedOnDependencyAnalysis: false
 			),
 			.init(
 				script: .script("""
@@ -215,7 +218,7 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 	
 	public func target() async throws -> ProjectSpec.Target {
 		let output = Target(
-			name: ios_only ? name : "iOS",
+			name: ios_only ? name : "\(name)-ios",
 			type: .application,
 			platform: .iOS,
 			productName: name,
@@ -236,7 +239,7 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 			buildRules: [
 				
 			],
-			scheme: nil,
+            scheme: nil,
 			legacy: nil,
 			attributes: try await attributes(),
 			onlyCopyFilesOnInstall: false,
@@ -247,4 +250,41 @@ public class KivyProjectTarget: PSProjTargetProtocol {
 	}
 	
 	
+}
+
+import Zip
+
+extension KivyProjectTarget {
+    public func prepare() async throws {
+        
+    }
+    
+    
+    
+    public func unpackDistAssets(src: Path, to: Path) async throws {
+        //var download: Path = .init( try await download(url: url ).path() )
+        let new_loc = to + src.lastComponent
+        //try download.move(new_loc)
+        //download = new_loc
+        let tmp = try Path.uniqueTemporary()
+        //
+        try Zip.unzipFile(src.url, destination: tmp.url, overwrite: true, password: nil)
+        //temp.forEach({print($0)})
+        let tmp_dist = tmp + "dist_files"
+        defer { try? tmp.delete() }
+        for folder in try tmp_dist.children() {
+            print(folder)
+            let folder_name = folder.lastComponent
+            for file in try folder.children() {
+                print(file)
+                let folder_dest = to + folder_name
+                try? file.copy(folder_dest + file.lastComponent)
+            }
+                        
+        }
+        
+        //let extract_folder = temp + asset.extract_name
+        //try await completion(asset.asset, extract_folder)
+        //try? extract_folder.delete()
+    }
 }

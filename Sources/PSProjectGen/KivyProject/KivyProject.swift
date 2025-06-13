@@ -51,6 +51,16 @@ enum KivyCreateError: Error, CustomStringConvertible {
 	}
 }
 
+extension Array {
+    @inlinable public func asyncMap<T, E>(_ transform: (Element) async throws(E) -> T) async throws(E) -> [T] where E : Error {
+        var elements = [T]()
+        for element in self {
+            elements.append(try await transform(element))
+        }
+        return elements
+    }
+}
+
 extension PathKit.Path {
 	
 	@discardableResult
@@ -212,36 +222,37 @@ public class KivyProject: PSProjectProtocol {
     
     let legacy: Bool
     
+    let platforms: [Platform]
+    
     let ios_only: Bool
     
     var target_types: [ProjectTarget]
 	
-    public init(name: String, py_src: Path?, requirements: Path?, projectSpec: Path?, workingDir: Path, app_path: Path, legacy: Bool, ios_only: Bool) async throws {
+    public init(name: String, py_src: Path?, requirements: Path?, projectSpec: Path?, workingDir: Path, app_path: Path, legacy: Bool, platforms: [Platform]) async throws {
 		self.name = name
-        target_types = ios_only ? [.iOS] : [.iOS, .macOS]
+        self.platforms = platforms
+        ios_only = !platforms.contains(.macos)
+        self.target_types = platforms.map({ plat in
+            switch plat {
+            case .ios: .iOS
+            case .macos: .macOS
+            }
+        })
+        
+        //target_types = ios_only ? [.iOS] : [.iOS, .macOS]
 		self.workingDir = workingDir
         let resources = workingDir + "\(ios_only ? "" : "iOS/")Resources"
 		//self.resourcesPath = resources
 		self.pythonLibPath = resources + "lib"
 		self.app_path = app_path
         self.legacy = legacy
-        self.ios_only = ios_only
+        //self.ios_only = ios_only
 		self.local_py_src = py_src == nil
 		self.py_src = py_src ?? "py_src"
 		self.requirements = requirements
 		self.projectSpec = projectSpec
 		self.projectSpecData = try projectSpec?.specData()
-		let base_target = try await KivyProjectTarget(
-            name: name,
-			py_src: self.py_src,
-			//dist_lib: (try await Path.distLib(workingDir: workingDir)).string,
-			dist_lib: (workingDir + "dist_lib"),
-            projectSpec: projectSpecData,
-			workingDir: workingDir,
-			app_path: app_path,
-            legacy: legacy,
-            ios_only: ios_only
-		)
+		
         
         
 		_targets = []
@@ -249,24 +260,42 @@ public class KivyProject: PSProjectProtocol {
         print(app_path)
         psp_bundle = Bundle(path: (app_path + "PythonSwiftProject_PSProjectGen.bundle").string )!
         
-		base_target.project = self
-		_targets.append(base_target)
-        if !ios_only {
-            let macos_target = try await KivyProjectTargetMacOS(
-                name: name,
-                py_src: self.py_src,
-                //dist_lib: (try await Path.distLib(workingDir: workingDir)).string,
-                dist_lib: (workingDir + "dist_lib"),
-                projectSpec: projectSpecData,
-                workingDir: workingDir,
-                app_path: app_path,
-                legacy: legacy,
-                ios_only: ios_only
-            )
-            macos_target.project = self
-            _targets.append(macos_target)
+        _targets = try await platforms.asyncMap { plat in
+            switch plat {
+            case .ios:
+                let base_target = try await KivyProjectTarget(
+                    name: name,
+                    py_src: self.py_src,
+                    //dist_lib: (try await Path.distLib(workingDir: workingDir)).string,
+                    dist_lib: (workingDir + "dist_lib"),
+                    projectSpec: projectSpecData,
+                    workingDir: workingDir,
+                    app_path: app_path,
+                    legacy: legacy,
+                    ios_only: !platforms.contains(.macos)
+                )
+                base_target.project = self
+                return base_target
+            case .macos:
+                let macos_target = try await KivyProjectTargetMacOS(
+                    name: name,
+                    py_src: self.py_src,
+                    //dist_lib: (try await Path.distLib(workingDir: workingDir)).string,
+                    dist_lib: (workingDir + "dist_lib"),
+                    projectSpec: projectSpecData,
+                    workingDir: workingDir,
+                    app_path: app_path,
+                    legacy: legacy,
+                    macos_only: !platforms.contains(.ios)
+                )
+                macos_target.project = self
+                return macos_target
+            }
         }
+
 	}
+    
+    
 	public func targets() async throws -> [Target] {
 		var output: [Target] = []
 		for target in _targets {
@@ -274,9 +303,12 @@ public class KivyProject: PSProjectProtocol {
 		}
 		return output
 	}
+    
 	public var distFolder: Path { workingDir + "dist_lib"}
-	var distIphoneos: Path { distFolder + "iphoneos"}
-	var distSimulator: Path { distFolder + "iphonesimulator"}
+	
+    var distIphoneos: Path { distFolder + "iphoneos"}
+	
+    var distSimulator: Path { distFolder + "iphonesimulator"}
 	//var mainSiteFolder: Path { resourcesPath + "site-packages" }
 	var site_folders: [Path] {
 		
@@ -294,7 +326,15 @@ public class KivyProject: PSProjectProtocol {
 	}
 	
 	public func schemes() async throws -> [ProjectSpec.Scheme] {
-		[]
+        return []
+        return try platforms.map { platform in
+            switch platform {
+            case .ios:
+                    try .init(name: "iOS", build: .init(targets: [.init(target: .init("iOS"))]) , archive: .init(customArchiveName: name))
+            case .macos:
+                    try .init(name: "macOS", build: .init(targets: [.init(target: .init("macOS"))]), archive: .init(customArchiveName: name))
+            }
+        }
 	}
 	
 	public func projSettings() async throws -> ProjectSpec.Settings {
@@ -425,7 +465,12 @@ public class KivyProject: PSProjectProtocol {
                     }
                 }
             case .macOS:
-                break
+                let python = ReleaseAssetDownloader.PythonCore()
+                if let assets = try await python.downloadFiles(legacy: legacy), let stdlib = assets.first {
+                    let stdlib_dest = target_type.resources(current: workingDir, ios_only: ios_only)
+                    try await unpackAsset(src: .init(stdlib.path()), to: stdlib_dest)
+                    
+                }
             }
         }
         
@@ -500,6 +545,19 @@ public class KivyProject: PSProjectProtocol {
             for target_type in target_types {
                 let sources = target_type.sources(current: workingDir, ios_only: ios_only)
                 try sourcesPath.copy(sources)
+                if target_type == .macOS {
+                    try? (sources + "Main.swift").delete()
+                    
+                    try (sources + "main.swift").write(macOS_MainFile(), encoding: .utf8)
+                    let resources = target_type.resources(current: workingDir, ios_only: ios_only)
+                    
+                    let stdlib_dest = target_type.resources(current: workingDir, ios_only: ios_only)
+                    
+                    let lib_folder = target_type.resources(current: workingDir, ios_only: ios_only) + "lib"
+                    try lib_folder.mkdir()
+                    let stdlib_final = lib_folder + "python3.11"
+                    try (stdlib_dest + "python-stdlib").move(stdlib_final)
+                }
             }
         }
         
@@ -539,14 +597,18 @@ public class KivyProject: PSProjectProtocol {
                     try? (kivyAppFiles + "Images.xcassets").copy(resourcesPath + "Images.xcassets")
                 }
                 
-                if let launch_screen = spec.launch_screen {
-                    try launch_screen.copy(resourcesPath + "Launch Screen.storyboard")
-                } else {
-                    try? (kivyAppFiles + "Launch Screen.storyboard").copy(resourcesPath + "Launch Screen.storyboard")
+                if target_type == .iOS {
+                    if let launch_screen = spec.launch_screen {
+                        try launch_screen.copy(resourcesPath + "Launch Screen.storyboard")
+                    } else {
+                        try? (kivyAppFiles + "Launch Screen.storyboard").copy(resourcesPath + "Launch Screen.storyboard")
+                    }
                 }
                 
             } else {
-                try? (kivyAppFiles + "Launch Screen.storyboard").copy(resourcesPath + "Launch Screen.storyboard")
+                if target_type == .iOS {
+                    try? (kivyAppFiles + "Launch Screen.storyboard").copy(resourcesPath + "Launch Screen.storyboard")
+                }
                 try? (kivyAppFiles + "Images.xcassets").copy(resourcesPath + "Images.xcassets")
                 try? (kivyAppFiles + "icon.png").copy(resourcesPath + "icon.png")
             }
@@ -638,13 +700,16 @@ public class KivyProject: PSProjectProtocol {
 		let project = try! await project()
 		let fw = FileWriter(project: project)
 		let projectGenerator = ProjectGenerator(project: project)
-		
+        
 		guard let userName = ProcessInfo.processInfo.environment["LOGNAME"] else {
 			throw KivyCreateError.missingUsername
 		}
 		
 		let xcodeProject = try! projectGenerator.generateXcodeProject(in: workingDir, userName: userName)
-        xcodeProject.pbxproj.buildConfigurations.first!.buildSettings
+        
+        //xcodeProject.pbxproj.nativeTargets.first?
+        //xcodeProject.pbxproj.targets(named: "macOS").first?.productName = name
+        //xcodeProject.pbxproj.buildConfigurations.first!.buildSettings
 		try! fw.writePlists()
 		//
 		

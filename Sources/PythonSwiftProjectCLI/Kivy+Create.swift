@@ -48,6 +48,8 @@ private func getAppLocation() -> Path? {
     return local_bin
 }
 
+extension KivyProject.Platform: ArgumentParser.ExpressibleByArgument {}
+
 extension PythonSwiftProjectCLI.Kivy {
 	
 	struct GenerateSpec: AsyncParsableCommand {
@@ -110,12 +112,15 @@ extension PythonSwiftProjectCLI.Kivy {
 		
 		@Flag(name: .short) var forced: Bool = false
         
+        @Option(name: .long) var platform: [ KivyProject.Platform ] = [.ios]
+        
         @Flag() var legacy: Bool = false
 		
 		func run() async throws {
 //			try await GithubAPI(owner: "PythonSwiftLink", repo: "KivyCore").handleReleases()
 //			return
             var spec_file = spec_file
+            print(platform)
             
             guard let app_path = getAppLocation()?.parent() else { fatalError("App Folder not found")}
             
@@ -140,6 +145,10 @@ extension PythonSwiftProjectCLI.Kivy {
             // check if parh actually exist else do fatalError
             if let src, !src.exists {
                 fatalError("\(src) don't exist")
+            } else {
+                let emptySrc = (Path.current + name) + "py_src"
+                try emptySrc.mkpath()
+                src = emptySrc
             }
             
 			let projDir = (Path.current + name)
@@ -158,7 +167,7 @@ extension PythonSwiftProjectCLI.Kivy {
                 workingDir: projDir,
                 app_path: app_path,
                 legacy: legacy,
-                ios_only: true
+                platforms: platform
 			)
 			
 			try await proj.createStructure()

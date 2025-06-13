@@ -22,6 +22,7 @@ public protocol PSProjTargetProtocol {
 	func attributes() async throws -> [String : Any]
 	func build() async throws
 	func target() async throws -> Target
+    func prepare() async throws
 }
 
 public protocol PSProjectProtocol {

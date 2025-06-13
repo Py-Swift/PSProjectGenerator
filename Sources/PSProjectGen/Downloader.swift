@@ -62,6 +62,34 @@ public protocol KSLReleaseProtocol {
 }
 
 public struct ReleaseAssetDownloader {
+    
+    class PythonCore: KSLReleaseProtocol {
+        
+        init() {}
+        
+        func downloadFiles(legacy: Bool) async throws -> [URL]? {
+            var outputs = [URL]()
+            let kivy_release = try await loadGithub(owner: "kv-swift", repo: "PythonCore")
+            if let release = kivy_release.releases.first  {
+                let zips = release.assets.compactMap { r in
+                    switch r.name {
+                    case "macos-python-stdlib.zip":
+                        return URL(string: r.browser_download_url )
+                    default: return nil
+                    }
+                    
+                }
+                print(zips)
+                return try await zips.asyncMap { zip in
+                    try await downloadAsset(url: zip)
+                }
+            }
+            return nil
+        }
+        
+        
+        
+    }
 	
 	class KivyCore: KSLReleaseProtocol {
 		

@@ -11,3 +11,4 @@ requests==2.32.3
     # via kivy-garden
 urllib3==2.3.0
     # via requests
+filetype
