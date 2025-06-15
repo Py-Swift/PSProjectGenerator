@@ -139,12 +139,16 @@ extension PythonSwiftProjectCLI.Kivy {
             // check if relative and create full path to it..
             if let python_src {
                 if python_src.isRelative {
-                    src = current + python_src.lastComponent
+                    if python_src.string.hasPrefix("..") {
+                        src = current.parent() + python_src.lastComponent
+                    } else {
+                        src = current + python_src.lastComponent
+                    }
                 }
             }
             // check if parh actually exist else do fatalError
-            if let src, !src.exists {
-                fatalError("\(src) don't exist")
+            if let src {
+                guard src.exists else { fatalError("\(src) don't exist") }
             } else {
                 let emptySrc = (Path.current + name) + "py_src"
                 try emptySrc.mkpath()
