@@ -46,7 +46,7 @@ func pipInstall(_ requirements: Path, site_path: Path) -> String {
 	let pipe = Pipe()
 	task.standardOutput = pipe
 	task.standardError = pipe
-	task.arguments = ["install","-r", requirements.string, "-t", site_path.string]
+	task.arguments = ["install","-r", requirements.string, "-t", site_path.string, "--compile"]
     task.executablePath = try? which_pip3()
 	task.standardInput = nil
 	task.launch()
@@ -63,7 +63,7 @@ func pipInstall(pip: String, site_path: Path) -> String {
     let pipe = Pipe()
     task.standardOutput = pipe
     task.standardError = pipe
-    task.arguments = ["install", pip, "-t", site_path.string]
+    task.arguments = ["install", pip, "-t", site_path.string, "--compile"]
     task.executablePath = try? which_pip3()
     task.standardInput = nil
     task.launch()
