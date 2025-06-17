@@ -114,6 +114,8 @@ extension PythonSwiftProjectCLI.Kivy {
         
         @Option(name: .long) var platform: [ KivyProject.Platform ] = [.ios]
         
+        @Option(name: .long) var icon: Path?
+        
         @Flag() var legacy: Bool = false
 		
 		func run() async throws {
@@ -166,6 +168,7 @@ extension PythonSwiftProjectCLI.Kivy {
 				name: name,
 				py_src: src,
                 requirements: requirements,
+                icon: icon,
 				//projectSpec: swift_packages == nil ? nil : .init(swift_packages!),
                 projectSpec: spec_file,
                 workingDir: projDir,

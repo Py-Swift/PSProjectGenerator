@@ -23,6 +23,7 @@ let package = Package(
         .package(url: "https://github.com/py-swift/PySwiftKit", .upToNextMajor(from: "311.0.0")),
         //.package(url: "https://github.com/PythonSwiftLink/PythonCore", .upToNextMajor(from: "311.0.0")),
         .package(url: "https://github.com/py-swift/PyCodable", .upToNextMajor(from: "0.0.0")),
+        .package(url: "https://github.com/Py-Swift/XCAssetsProcessor", .upToNextMajor(from: "0.0.0")),
 		//.package(path: "/Volumes/CodeSSD/PythonSwiftGithub/PyCodable")
 		//.package(url: "https://github.com/PythonSwiftLink/SwiftPackageGen", from: .init(0, 0, 3)),
 		//.package(path: "/Volumes/CodeSSD/XcodeGithub/SwiftPackageGen")
@@ -49,7 +50,8 @@ let package = Package(
                 .product(name: "SwiftonizeModules", package: "PySwiftKit"),
                 .product(name: "PyExecute", package: "PySwiftKit"),
                 //.product(name: "PythonCore", package: "PythonCore"),
-                .product(name: "PyCodable", package: "PyCodable")
+                .product(name: "PyCodable", package: "PyCodable"),
+                .byName(name: "XCAssetsProcessor")
 				//.product(name: "RecipeBuilder", package: "SwiftPackageGen")
 			],
 			resources: [

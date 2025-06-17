@@ -13,6 +13,7 @@ import ProjectSpec
 import Yams
 //import RecipeBuilder
 import Zip
+import XCAssetsProcessor
 
 enum KivyCreateError: Error, CustomStringConvertible {
 	case missingProjectSpec(Path)
@@ -208,6 +209,8 @@ public class KivyProject: PSProjectProtocol {
 	var _targets: [PSProjTargetProtocol] = []
 	
 	var requirements: Path?
+    
+    var icon: Path?
 	
 	var local_py_src: Bool
 	
@@ -228,7 +231,17 @@ public class KivyProject: PSProjectProtocol {
     
     var target_types: [ProjectTarget]
 	
-    public init(name: String, py_src: Path?, requirements: Path?, projectSpec: Path?, workingDir: Path, app_path: Path, legacy: Bool, platforms: [Platform]) async throws {
+    public init(
+        name: String,
+        py_src: Path?,
+        requirements: Path?,
+        icon: Path?,
+        projectSpec: Path?,
+        workingDir: Path,
+        app_path: Path,
+        legacy: Bool,
+        platforms: [Platform]
+    ) async throws {
 		self.name = name
         self.platforms = platforms
         ios_only = !platforms.contains(.macos)
@@ -242,6 +255,7 @@ public class KivyProject: PSProjectProtocol {
         //target_types = ios_only ? [.iOS] : [.iOS, .macOS]
 		self.workingDir = workingDir
         let resources = workingDir + "\(ios_only ? "" : "iOS/")Resources"
+        self.icon = icon
 		//self.resourcesPath = resources
 		self.pythonLibPath = resources + "lib"
 		self.app_path = app_path
@@ -594,7 +608,26 @@ public class KivyProject: PSProjectProtocol {
                 if let imageset = spec.imageset {
                     try? imageset.copy(resourcesPath + "Images.xcassets")
                 } else {
-                    try? (kivyAppFiles + "Images.xcassets").copy(resourcesPath + "Images.xcassets")
+                    //try? (kivyAppFiles + "Images.xcassets").copy(resourcesPath + "Images.xcassets")
+                    
+                    let png: Path = resourcesPath + "icon.png"
+                    let dest: Path = resourcesPath + "Images.xcassets"
+
+                    let appiconset = dest + "AppIcon.appiconset"
+
+                    try? appiconset.mkpath()
+                    let iconsData = [IconDataItem].allIcons
+                    let assetData = switch target_type {
+                    case .iOS:
+                        iconsData.filter({$0.idiom != .mac})
+                    case .macOS:
+                        iconsData.filter({$0.idiom == .mac})
+                    }
+                    let sizes: [CGFloat] = assetData.compactMap { Double($0.expected_size)! }
+                    try XCAssetsProcessor(source: png).process(dest: appiconset, sizes: sizes)
+
+
+                    try JSONEncoder().encode(ContentsJson(images: assetData)).write(to: (appiconset + "Contents.json").url)
                 }
                 
                 if target_type == .iOS {
@@ -609,8 +642,31 @@ public class KivyProject: PSProjectProtocol {
                 if target_type == .iOS {
                     try? (kivyAppFiles + "Launch Screen.storyboard").copy(resourcesPath + "Launch Screen.storyboard")
                 }
-                try? (kivyAppFiles + "Images.xcassets").copy(resourcesPath + "Images.xcassets")
-                try? (kivyAppFiles + "icon.png").copy(resourcesPath + "icon.png")
+                //try? (kivyAppFiles + "Images.xcassets").copy(resourcesPath + "Images.xcassets")
+                if let icon {
+                    try? icon.copy(resourcesPath + "icon.png")
+                } else {
+                    try? (kivyAppFiles + "icon.png").copy(resourcesPath + "icon.png")
+                }
+                
+                let png: Path = resourcesPath + "icon.png"
+                let dest: Path = resourcesPath + "Images.xcassets"
+
+                let appiconset = dest + "AppIcon.appiconset"
+
+                try? appiconset.mkpath()
+                let iconsData = [IconDataItem].allIcons
+                let assetData = switch target_type {
+                case .iOS:
+                    iconsData.filter({$0.idiom != .mac})
+                case .macOS:
+                    iconsData.filter({$0.idiom == .mac})
+                }
+                let sizes: [CGFloat] = assetData.compactMap { Double($0.expected_size)! }
+                try XCAssetsProcessor(source: png).process(dest: appiconset, sizes: sizes)
+
+
+                try JSONEncoder().encode(ContentsJson(images: assetData)).write(to: (appiconset + "Contents.json").url)
             }
         }
         
