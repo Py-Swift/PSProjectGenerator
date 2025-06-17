@@ -706,7 +706,7 @@ public class KivyProject: PSProjectProtocol {
     
     public func unpackDistAssets(src: Path, to: Path) async throws {
         //var download: Path = .init( try await download(url: url ).path() )
-        let new_loc = to + src.lastComponent
+        //let new_loc = to + src.lastComponent
         //try download.move(new_loc)
         //download = new_loc
         let tmp = try Path.uniqueTemporary()
@@ -716,10 +716,10 @@ public class KivyProject: PSProjectProtocol {
         let tmp_dist = tmp + "dist_files"
         defer { try? tmp.delete() }
         for folder in try tmp_dist.children() {
-            print(folder)
+            
             let folder_name = folder.lastComponent
             for file in try folder.children() {
-                print(file)
+                
                 let folder_dest = to + folder_name
                 try? file.copy(folder_dest + file.lastComponent)
             }
