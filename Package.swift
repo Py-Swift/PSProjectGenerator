@@ -13,7 +13,7 @@ let package = Package(
 	],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
-		.package(url: "https://github.com/tuist/XcodeProj.git", from: .init(8, 13, 0)),
+		//.package(url: "https://github.com/tuist/XcodeProj.git", from: .init(8, 13, 0)),
 		.package(url: "https://github.com/yonaskolb/XcodeGen.git", from: "2.42.0"),
 		//.package(url: "https://github.com/1024jp/GzipSwift", from: .init(6, 0, 0)),
 		.package(url: "https://github.com/marmelroy/Zip", from: .init(2, 1, 0)),
@@ -24,6 +24,8 @@ let package = Package(
         //.package(url: "https://github.com/PythonSwiftLink/PythonCore", .upToNextMajor(from: "311.0.0")),
         .package(url: "https://github.com/py-swift/PyCodable", .upToNextMajor(from: "0.0.0")),
         .package(url: "https://github.com/Py-Swift/XCAssetsProcessor", .upToNextMajor(from: "0.0.0")),
+        .package(url: "https://github.com/tuist/XcodeProj.git", .upToNextMajor(from: "8.24.3")),
+        .package(url: "https://github.com/kylef/PathKit", .upToNextMajor(from: "1.0.1")),
 		//.package(path: "/Volumes/CodeSSD/PythonSwiftGithub/PyCodable")
 		//.package(url: "https://github.com/PythonSwiftLink/SwiftPackageGen", from: .init(0, 0, 3)),
 		//.package(path: "/Volumes/CodeSSD/XcodeGithub/SwiftPackageGen")
@@ -32,7 +34,15 @@ let package = Package(
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
-		
+        .target(
+            name: "PSProjectUpdate",
+            dependencies: [
+                .byName(name: "XCAssetsProcessor"),
+                .byName(name: "XcodeProj"),
+                .byName(name: "PathKit"),
+                "PSProjectGen"
+            ]
+        ),
 		.target(
 			name: "PSProjectGen",
 			
@@ -51,7 +61,8 @@ let package = Package(
                 .product(name: "PyExecute", package: "PySwiftKit"),
                 //.product(name: "PythonCore", package: "PythonCore"),
                 .product(name: "PyCodable", package: "PyCodable"),
-                .byName(name: "XCAssetsProcessor")
+                .byName(name: "XCAssetsProcessor"),
+                .byName(name: "XcodeProj")
 				//.product(name: "RecipeBuilder", package: "SwiftPackageGen")
 			],
 			resources: [
@@ -76,6 +87,7 @@ let package = Package(
 //				.product(name: "XcodeGenKit", package: "XcodeGen"),
 //				.product(name: "ProjectSpec", package: "XcodeGen"),
 				"PSProjectGen",
+                "PSProjectUpdate",
 				//.product(name: "Gzip", package: "GzipSwift"),
 				.product(name: "Zip", package: "Zip"),
 				//.product(name: "GeneratePackage", package: "SwiftPackageGen"),
