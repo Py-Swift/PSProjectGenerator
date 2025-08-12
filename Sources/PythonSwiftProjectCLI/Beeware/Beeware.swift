@@ -33,6 +33,11 @@ extension PythonSwiftProjectCLI {
     
 }
 
+extension PathKit.Path: ArgumentParser.ExpressibleByArgument {
+    public init?(argument: String) {
+        self.init(argument)
+    }
+}
 
 
 extension PythonSwiftProjectCLI.Beeware {
