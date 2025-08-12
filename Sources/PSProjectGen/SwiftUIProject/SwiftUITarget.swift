@@ -15,182 +15,182 @@ import Yams
 import Zip
 import XCAssetsProcessor
 
-public extension SwiftUIProject {
-    
-    class Target: PSProjTargetProtocol {
-        public var name: String
-        
-        public var pythonProject: PathKit.Path
-        
-        public var projectSpec: SpecData?
-        //    var projectSpec: SpecData?
-        
-        let workingDir: Path
-        let resourcesPath: Path
-        let pythonLibPath: Path
-        let app_path: Path
-        
-        init(name: String, pythonProject: PathKit.Path, projectSpec: SpecData? = nil, workingDir: Path, app_path: Path) {
-            self.name = name
-            self.pythonProject = pythonProject
-            self.projectSpec = projectSpec
-            self.workingDir = workingDir
-            let resources = workingDir + "Resources"
-            self.resourcesPath = resources
-            self.pythonLibPath = resources + "lib"
-            self.app_path = app_path
-        }
-      
-        
-        
-    }
-}
-
-extension SwiftUIProject.Target {
-    
-    public func projSettings() async throws -> ProjectSpec.Settings {
-        var configDict: [String: Any] = [
-            "LIBRARY_SEARCH_PATHS": [
-                "$(inherited)",
-            ] ,
-            "SWIFT_VERSION": "5.0",
-            "OTHER_LDFLAGS": "-all_load",
-            "ENABLE_BITCODE": false,
-            "PRODUCT_NAME": "$(PROJECT_NAME)"
-        ]
-//        if let projectSpec = project?.projectSpecData {
-//            try loadBuildConfigKeys(from: projectSpec, keys: &configDict)
+//public extension SwiftUIProject {
+//    
+//    class Target: PSProjTargetProtocol {
+//        public var name: String
+//        
+//        public var pythonProject: PathKit.Path
+//        
+//        public var projectSpec: SpecData?
+//        //    var projectSpec: SpecData?
+//        
+//        let workingDir: Path
+//        let resourcesPath: Path
+//        let pythonLibPath: Path
+//        let app_path: Path
+//        
+//        init(name: String, pythonProject: PathKit.Path, projectSpec: SpecData? = nil, workingDir: Path, app_path: Path) {
+//            self.name = name
+//            self.pythonProject = pythonProject
+//            self.projectSpec = projectSpec
+//            self.workingDir = workingDir
+//            let resources = workingDir + "Resources"
+//            self.resourcesPath = resources
+//            self.pythonLibPath = resources + "lib"
+//            self.app_path = app_path
 //        }
-        
-        var configSettings: Settings {
-            .init(dictionary: configDict)
-        }
-        
-        return .init(configSettings: [
-            "Debug": configSettings,
-            "Release": configSettings
-        ])
-    }
-    
-    public func configFiles() async throws -> [String : String] {
-        [:]
-    }
-    
-    public func sources() async throws -> [ProjectSpec.TargetSource] {
-        let current = workingDir
-        let sourcesPath = (current + "Sources")
-        let target_group = "iOS"
-        let singleTarget = true
-        let res_group = "Resources"
-        
-        var sources: [ProjectSpec.TargetSource] = [
-            .init(path: "\(res_group)/site-packages", type: .file, buildPhase: .resources ),
-            .init(path: (sourcesPath).string, group: singleTarget ? nil : target_group, type: .group)
-        ]
-        return sources
-    }
-    
-    public func dependencies() async throws -> [ProjectSpec.Dependency] {
-        
-        
-        
-        var output: [ProjectSpec.Dependency] = [
-            .init(type: .package(products: ["SwiftonizeModules"]), reference: "PySwiftKit"),
-            .init(type: .package(products: ["PythonCore"]), reference: "PythonCore"),
-        ]
-        
-        return output
-    }
-    
-    public func info() async throws -> ProjectSpec.Plist {
-        .init(path: "Info.plist")
-    }
-    
-    public func preBuildScripts() async throws -> [ProjectSpec.BuildScript] {
-        []
-    }
-    
-    public func buildToolPlugins() async throws -> [ProjectSpec.BuildToolPlugin] {
-        []
-    }
-    
-    public func postCompileScripts() async throws -> [ProjectSpec.BuildScript] {
-        []
-    }
-    
-    public func postBuildScripts() async throws -> [ProjectSpec.BuildScript] {[
-        .init(
-            script: .script(install_target_modules(app_name: "MyApp")),
-            name: "Install target specific Python modules"
-        ),
-        .init(
-            script: .script(ios_sign_script()),
-            name: "Sign Python Binary Modules"
-        )
-    ]}
-    
-    public func attributes() async throws -> [String : Any] {
-        [:]
-    }
-    
-    public func build() async throws {
-        
-    }
-    
-    public func target() async throws -> ProjectSpec.Target {
-        let output = Target(
-            name:  name,
-            type: .application,
-            platform: .iOS,
-            productName: name,
-            deploymentTarget: .init("13.0"),
-            settings: try! await projSettings(),
-            configFiles: try! await configFiles(),
-            sources: try! await sources(),
-            dependencies: try! await dependencies(),
-            info: try! await info(),
-            entitlements: nil,
-            transitivelyLinkDependencies: false,
-            directlyEmbedCarthageDependencies: false,
-            requiresObjCLinking: true,
-            preBuildScripts: try await preBuildScripts(),
-            buildToolPlugins: try await buildToolPlugins(),
-            postCompileScripts: try await postCompileScripts(),
-            postBuildScripts: try await postBuildScripts(),
-            buildRules: [
-                
-            ],
-            scheme: nil,
-            legacy: nil,
-            attributes: try await attributes(),
-            onlyCopyFilesOnInstall: false,
-            putResourcesBeforeSourcesBuildPhase: false
-        )
-        
-        return output
-    }
-    
-    public func prepare() async throws {
-        let basePath = workingDir 
-        let resources = basePath + "Resources"
-        let site_packages = resources + "site-packages"
-        if !site_packages.exists {
-            try site_packages.mkpath()
-        }
-        
-        let sources = basePath + "Sources"
-        
-        if !sources.exists {
-            try sources.mkpath()
-        }
-        let app_file = sources + "\(name)App.swift"
-        
-        try app_file.write(appFile(), encoding: .utf8)
-        
-        let contentView = sources + "ContentView.swift"
-        try contentView.write(contentViewFile(), encoding: .utf8)
-    }
-}
+//      
+//        
+//        
+//    }
+//}
+//
+//extension SwiftUIProject.Target {
+//    
+//    public func projSettings() async throws -> ProjectSpec.Settings {
+//        var configDict: [String: Any] = [
+//            "LIBRARY_SEARCH_PATHS": [
+//                "$(inherited)",
+//            ] ,
+//            "SWIFT_VERSION": "5.0",
+//            "OTHER_LDFLAGS": "-all_load",
+//            "ENABLE_BITCODE": false,
+//            "PRODUCT_NAME": "$(PROJECT_NAME)"
+//        ]
+////        if let projectSpec = project?.projectSpecData {
+////            try loadBuildConfigKeys(from: projectSpec, keys: &configDict)
+////        }
+//        
+//        var configSettings: Settings {
+//            .init(dictionary: configDict)
+//        }
+//        
+//        return .init(configSettings: [
+//            "Debug": configSettings,
+//            "Release": configSettings
+//        ])
+//    }
+//    
+//    public func configFiles() async throws -> [String : String] {
+//        [:]
+//    }
+//    
+//    public func sources() async throws -> [ProjectSpec.TargetSource] {
+//        let current = workingDir
+//        let sourcesPath = (current + "Sources")
+//        let target_group = "iOS"
+//        let singleTarget = true
+//        let res_group = "Resources"
+//        
+//        var sources: [ProjectSpec.TargetSource] = [
+//            .init(path: "\(res_group)/site-packages", type: .file, buildPhase: .resources ),
+//            .init(path: (sourcesPath).string, group: singleTarget ? nil : target_group, type: .group)
+//        ]
+//        return sources
+//    }
+//    
+//    public func dependencies() async throws -> [ProjectSpec.Dependency] {
+//        
+//        
+//        
+//        var output: [ProjectSpec.Dependency] = [
+//            .init(type: .package(products: ["SwiftonizeModules"]), reference: "PySwiftKit"),
+//            .init(type: .package(products: ["PythonCore"]), reference: "PythonCore"),
+//        ]
+//        
+//        return output
+//    }
+//    
+//    public func info() async throws -> ProjectSpec.Plist {
+//        .init(path: "Info.plist")
+//    }
+//    
+//    public func preBuildScripts() async throws -> [ProjectSpec.BuildScript] {
+//        []
+//    }
+//    
+//    public func buildToolPlugins() async throws -> [ProjectSpec.BuildToolPlugin] {
+//        []
+//    }
+//    
+//    public func postCompileScripts() async throws -> [ProjectSpec.BuildScript] {
+//        []
+//    }
+//    
+//    public func postBuildScripts() async throws -> [ProjectSpec.BuildScript] {[
+//        .init(
+//            script: .script(install_target_modules(app_name: "MyApp")),
+//            name: "Install target specific Python modules"
+//        ),
+//        .init(
+//            script: .script(ios_sign_script()),
+//            name: "Sign Python Binary Modules"
+//        )
+//    ]}
+//    
+//    public func attributes() async throws -> [String : Any] {
+//        [:]
+//    }
+//    
+//    public func build() async throws {
+//        
+//    }
+//    
+//    public func target() async throws -> ProjectSpec.Target {
+//        let output = Target(
+//            name:  name,
+//            type: .application,
+//            platform: .iOS,
+//            productName: name,
+//            deploymentTarget: .init("13.0"),
+//            settings: try! await projSettings(),
+//            configFiles: try! await configFiles(),
+//            sources: try! await sources(),
+//            dependencies: try! await dependencies(),
+//            info: try! await info(),
+//            entitlements: nil,
+//            transitivelyLinkDependencies: false,
+//            directlyEmbedCarthageDependencies: false,
+//            requiresObjCLinking: true,
+//            preBuildScripts: try await preBuildScripts(),
+//            buildToolPlugins: try await buildToolPlugins(),
+//            postCompileScripts: try await postCompileScripts(),
+//            postBuildScripts: try await postBuildScripts(),
+//            buildRules: [
+//                
+//            ],
+//            scheme: nil,
+//            legacy: nil,
+//            attributes: try await attributes(),
+//            onlyCopyFilesOnInstall: false,
+//            putResourcesBeforeSourcesBuildPhase: false
+//        )
+//        
+//        return output
+//    }
+//    
+//    public func prepare() async throws {
+//        let basePath = workingDir 
+//        let resources = basePath + "Resources"
+//        let site_packages = resources + "site-packages"
+//        if !site_packages.exists {
+//            try site_packages.mkpath()
+//        }
+//        
+//        let sources = basePath + "Sources"
+//        
+//        if !sources.exists {
+//            try sources.mkpath()
+//        }
+//        let app_file = sources + "\(name)App.swift"
+//        
+//        try app_file.write(appFile(), encoding: .utf8)
+//        
+//        let contentView = sources + "ContentView.swift"
+//        try contentView.write(contentViewFile(), encoding: .utf8)
+//    }
+//}
 
 
 

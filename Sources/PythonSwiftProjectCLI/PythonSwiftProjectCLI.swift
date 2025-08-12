@@ -12,8 +12,13 @@ struct PythonSwiftProjectCLI: AsyncParsableCommand {
 	
 	static var configuration: CommandConfiguration = .init(
 		version: LIBRARY_VERSION,
-        subcommands: [Beeware.self],
-        defaultSubcommand: Beeware.self
+        subcommands: [
+            Wheels.self,
+            HostPython.self,
+            Create.self,
+            Init.self,
+            Template.self
+        ]
 	)
 	
 	

@@ -7,7 +7,7 @@
 
 import ArgumentParser
 
-extension PythonSwiftProjectCLI.Beeware {
+extension PythonSwiftProjectCLI {
     
     
     struct Template: AsyncParsableCommand {

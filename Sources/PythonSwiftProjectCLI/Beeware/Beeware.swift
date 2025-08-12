@@ -11,24 +11,20 @@ import Zip
 extension PythonSwiftProjectCLI {
     
     
-    
-    struct Beeware: AsyncParsableCommand {
-        
-        
-        public static var configuration: CommandConfiguration = .init(
-            subcommands: [
-                Wheels.self,
-                HostPython.self,
-                Create.self,
-                Init.self,
-                Template.self
-            ]
-        )
-        
-        
-        
-        
-    }
+//    
+//    struct Beeware: AsyncParsableCommand {
+//        
+//        
+//        public static var configuration: CommandConfiguration = .init(
+//            subcommands: [
+//
+//            ]
+//        )
+//        
+//        
+//        
+//        
+//    }
     
     
 }
@@ -40,7 +36,7 @@ extension PathKit.Path: ArgumentParser.ExpressibleByArgument {
 }
 
 
-extension PythonSwiftProjectCLI.Beeware {
+extension PythonSwiftProjectCLI {
     struct HostPython: AsyncParsableCommand {
         
         func run() async throws {

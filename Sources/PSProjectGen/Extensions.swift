@@ -47,7 +47,7 @@ extension Bundle {
 }
 
 extension Process {
-    var executablePath: Path? {
+    public var executablePath: Path? {
         get {
             if let path = executableURL?.path() {
                 return .init(path)
@@ -220,4 +220,6 @@ extension Process {
         task.waitUntilExit()
         return task.terminationStatus
     }
+    
+    
 }

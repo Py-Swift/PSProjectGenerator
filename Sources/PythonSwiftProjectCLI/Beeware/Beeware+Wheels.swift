@@ -10,7 +10,7 @@ import PathKit
 import PSProjectGen
 import Zip
 
-extension PythonSwiftProjectCLI.Beeware {
+extension PythonSwiftProjectCLI {
     
     struct Wheels: AsyncParsableCommand {
         
@@ -24,7 +24,7 @@ extension PythonSwiftProjectCLI.Beeware {
     }
 }
 
-extension PythonSwiftProjectCLI.Beeware.Wheels {
+extension PythonSwiftProjectCLI.Wheels {
     struct List: AsyncParsableCommand {
         
         @Flag var versions: Bool = false

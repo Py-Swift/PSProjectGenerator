@@ -134,6 +134,28 @@ func pipInstall_ios(pip: String, site_path: Path, platform: String = "ios_13_0_a
     return output
 }
 
+public enum PyTools {
+    public static let hostpython: Path = "/Users/Shared/psproject/hostpython3"
+    public static var pip3: Path { hostpython + "bin/pip3" }
+    public static var python3: Path { hostpython + "bin/python3" }
+    
+    @discardableResult
+    public static func pipInstall(pip: String, _ args: String...) -> Int32 {
+        let task = Process()
+        
+        var arguments = [
+            "install",
+            pip
+        ] + args
+        
+        task.arguments = arguments
+        task.executablePath = pip3
+        task.standardInput = nil
+        task.launch()
+        task.waitUntilExit()
+        return task.terminationStatus
+    }
+}
 
 public class UVTool {
     

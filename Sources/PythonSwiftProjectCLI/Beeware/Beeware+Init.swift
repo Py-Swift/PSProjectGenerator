@@ -6,7 +6,7 @@ import TOMLKit
 
 
 
-extension PythonSwiftProjectCLI.Beeware {
+extension PythonSwiftProjectCLI {
     struct Init: AsyncParsableCommand {
         @Argument var path: Path
         @Option var name: String?
@@ -14,7 +14,7 @@ extension PythonSwiftProjectCLI.Beeware {
         
         func run() async throws {
             
-            if !Checks.validateHostPython() { return }
+            if !Validation.hostPython() { return }
             
             let btoml: TOMLTable? = if let buildozer {
                 try BuildozerSpecReader(path: buildozer).export()
