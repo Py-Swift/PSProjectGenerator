@@ -66,6 +66,12 @@ public enum Validation {
         return pyFramework.exists
     }
     
+    public static func support() throws {
+        let support = Path.ps_support
+        if support.exists { return }
+        try? support.mkpath()
+    }
+    
     public static func supportPythonFramework() async throws {
         if validateSupportPythonFramework() { return }
         try await PyBackendLoader.load_backend(name: "pyframework", path: "").do_install(support: .init(value: .ps_support))

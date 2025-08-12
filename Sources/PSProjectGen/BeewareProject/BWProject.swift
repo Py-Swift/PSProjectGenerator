@@ -352,34 +352,13 @@ public class BWProject: PSProjectProtocol {
     fileprivate func installBackends() async throws {
         let support = workingDir + "Support"
         
-        
+        try Validation.support()
+        try await Validation.supportPythonFramework()
         
         for backend in backends {
             try await backend.do_install(support: .init(value: support))
         }
-        
-//        if let backends = toml.pyswift.project?.backends {
-//            var use_sdl2 = false
-//            
-//            for backend in backends {
-//                switch backend.lowercased() {
-//                case "sdl2":
-//                    use_sdl2 = true
-//                case "kivylauncher":
-//                    use_sdl2 = true
-//                default:
-//                    continue
-//                }
-//            }
-//            
-//            if use_sdl2 {
-//                let sdl2_fw = try await Path.sdl2_frameworks()
-//                try (sdl2_fw + "SDL2.xcframework").copy(support + "SDL2.xcframework")
-//                try (sdl2_fw + "SDL2_image.xcframework").copy(support + "SDL2_image.xcframework")
-//                try (sdl2_fw + "SDL2_mixer.xcframework").copy(support + "SDL2_mixer.xcframework")
-//                try (sdl2_fw + "SDL2_ttf.xcframework").copy(support + "SDL2_ttf.xcframework")
-//            }
-//        }
+
     }
     
     

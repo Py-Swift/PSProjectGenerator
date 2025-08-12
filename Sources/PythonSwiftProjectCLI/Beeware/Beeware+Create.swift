@@ -49,13 +49,15 @@ struct Create: AsyncParsableCommand {
             if !Validation.hostPython() { return }
             try Validation.backends()
             
-            try await Validation.supportPythonFramework()
+            
             
             if arch_info.isIntel() {
                 print(arch_info)
             }
             
             try launchPython()
+            
+            
             
             guard let app_path = getAppLocation()?.parent() else { fatalError("App Folder not found")}
 
