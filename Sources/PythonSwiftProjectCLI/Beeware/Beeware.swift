@@ -20,7 +20,8 @@ extension PythonSwiftProjectCLI {
                 Wheels.self,
                 HostPython.self,
                 Create.self,
-                Init.self
+                Init.self,
+                Template.self
             ]
         )
         

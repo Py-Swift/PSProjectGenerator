@@ -14,9 +14,11 @@ extension PythonSwiftProjectCLI.Beeware {
         
         func run() async throws {
             
+            if !Checks.validateHostPython() { return }
+            
             let btoml: TOMLTable? = if let buildozer {
                 try BuildozerSpecReader(path: buildozer).export()
-            } else { fatalError() }
+            } else { nil }
             let buildozer_app = btoml?["buildozer-app"]?.table
             
             UVTool.Init(path: path.string, name: name ?? buildozer_app?["package"]?["name"]?.string)
@@ -25,7 +27,9 @@ extension PythonSwiftProjectCLI.Beeware {
             var pyproject_text = try pyproject.read(.utf8)
             
             let mainToml = TOMLTable()
-            
+            mainToml["dependency-groups"] = [
+                "iphoneos": []
+            ] as [String: [String]]
             
             
             
@@ -48,6 +52,7 @@ extension PythonSwiftProjectCLI.Beeware {
             print(
                 pyproject_text
             )
+            try pyproject.write(pyproject_text)
         }
         
         func pyswift_project_keys(buildozer: TOMLTable?) -> TOMLTable {
@@ -66,8 +71,11 @@ extension PythonSwiftProjectCLI.Beeware {
             
             project["swift_sources"] = TOMLArray()
             project["pip_install_app"] = false
-            project["backends"] = buildozer == nil ? TOMLArray() : TOMLArray(["kivylauncher"])
+            project["backends"] = buildozer == nil ? [] : ["kivylauncher"]
             project["dependencies"] = TOMLTable(["pips": buildozer == nil ? [] : ["ios"]])
+            project["platforms"] = [
+                "iphoneos"
+            ]
             
             project["plist"] = TOMLTable()
             return .init(project)

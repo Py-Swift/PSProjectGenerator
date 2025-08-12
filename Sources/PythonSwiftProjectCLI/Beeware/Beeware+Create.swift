@@ -45,6 +45,9 @@ struct Create: AsyncParsableCommand {
 //            return
         
         if let uv {
+            
+            if !Checks.validateHostPython() { return }
+            
             let info = ProcessInfo.processInfo
             
             if arch_info.isIntel() {

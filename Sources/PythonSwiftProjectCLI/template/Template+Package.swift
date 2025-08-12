@@ -10,7 +10,7 @@ import PSProjectGen
 import PathKit
 
 
-extension PythonSwiftProjectCLI.Kivy.Template {
+extension PythonSwiftProjectCLI.Beeware.Template {
     
     struct Package: AsyncParsableCommand {
         

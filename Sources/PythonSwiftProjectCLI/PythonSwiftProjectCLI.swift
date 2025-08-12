@@ -5,13 +5,14 @@
 // https://swiftpackageindex.com/apple/swift-argument-parser/documentation
 
 import ArgumentParser
+import PSProjectGen
 
 @main
 struct PythonSwiftProjectCLI: AsyncParsableCommand {
 	
 	static var configuration: CommandConfiguration = .init(
-		version: "0.1.4",
-        subcommands: [Kivy.self, SwiftUI.self, Beeware.self],
+		version: LIBRARY_VERSION,
+        subcommands: [Beeware.self],
         defaultSubcommand: Beeware.self
 	)
 	

@@ -29,6 +29,10 @@ jobs:
         with:
           xcode-version: 16.2
       - uses: actions/checkout@v4
+
+      - name: Update CLI version
+        run: swift package plugin --allow-writing-to-package-directory SetVersion --target PSProjectGen ${{ steps.version.outputs.var }}
+
       - name: Build x86_64    
         run: swift build -c release --disable-sandbox --arch x86_64 --product PSProjectCLI
       

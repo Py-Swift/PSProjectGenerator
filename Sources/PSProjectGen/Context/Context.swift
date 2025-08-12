@@ -164,8 +164,8 @@ public final class PlatformContext<Arch, SDK>: ContextProtocol where Arch: ArchP
     
     public var root: Path
     
-    public var pip3: Path = "/Users/Shared/psproject/python3/bin/pip3"
-    public var python3: Path = "/Users/Shared/psproject/python3/bin/python3"
+    public var pip3: Path = "/Users/Shared/psproject/hostpython3/bin/pip3"
+    public var python3: Path = "/Users/Shared/psproject/hostpython3/bin/python3"
     
     init(arch: Arch, sdk: SDK, root: Path) throws {
         

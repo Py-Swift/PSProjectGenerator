@@ -355,7 +355,7 @@ public class BWProject: PSProjectProtocol {
         
         
         for backend in backends {
-            try await backend.install(support: .init(value: support))
+            try await backend.do_install(support: .init(value: support))
         }
         
 //        if let backends = toml.pyswift.project?.backends {

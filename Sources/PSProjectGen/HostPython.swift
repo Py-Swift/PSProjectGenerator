@@ -17,7 +17,7 @@ public extension URL {
 }
 
 public extension Path {
-	static let hostPython = Path.current + "hostpython"
+	static let hostPython = Path.ps_shared + "hostpython3"
 	static let venv = Path.hostPython + "venv"
 	static let venvActivate = (Path.venv + "bin/activate")
     
