@@ -26,8 +26,8 @@ public struct PyProjectToml: Decodable {
 }
 
 struct PyBackendLoader {
-    static let spec_from_file_location = #PyCallable_P<String, Path>(PyImport(from: "importlib.util", import_name: "spec_from_file_location")!)
-    static let module_from_spec = #PyCallable_P<PyPointer>(PyImport(from: "importlib.util", import_name: "module_from_spec")!)
+    // static let spec_from_file_location = #PyCallable_P<String, Path>(PyImport(from: "importlib.util", import_name: "spec_from_file_location")!)
+    // static let module_from_spec = #PyCallable_P<PyPointer>(PyImport(from: "importlib.util", import_name: "module_from_spec")!)
     
     
     static func load_backend(name: String, path: Path) throws -> PSBackend {
