@@ -3,6 +3,9 @@
 import Foundation
 import PathKit
 
+
+
+
 @discardableResult
 func pythonScript(_ script: String) -> String {
 	let task = Process()
@@ -72,4 +75,153 @@ func pipInstall(pip: String, site_path: Path) -> String {
     let output = String(data: data, encoding: .utf8)!
     print(output)
     return output
+}
+
+
+func pipInstall_ios(_ requirements: Path, site_path: Path, platform: String = "ios_13_0_arm64_iphoneos") {
+    let task = Process()
+    // let pipe = Pipe()
+    //task.standardOutput = pipe
+    //task.standardError = pipe
+    task.arguments = [
+        "install",
+        "--disable-pip-version-check",
+        "--platform=\(platform)",
+        "--only-binary=:all:",
+        "--extra-index-url",
+        "https://pypi.anaconda.org/beeware/simple",
+        "--extra-index-url",
+        "https://pypi.anaconda.org/pyswift/simple",
+        "--target", site_path.string,
+        "-r", requirements.string,
+        
+    ]
+    task.executablePath = "/Users/Shared/psproject/python3/bin/pip3"
+    task.standardInput = nil
+    task.launch()
+    task.waitUntilExit()
+//    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+//    let output = String(data: data, encoding: .utf8)!
+//    print(output)
+    //return output
+}
+
+@discardableResult
+func pipInstall_ios(pip: String, site_path: Path, platform: String = "ios_13_0_arm64_iphoneos") -> String {
+    let task = Process()
+    let pipe = Pipe()
+    //task.standardOutput = pipe
+    //task.standardError = pipe
+    task.arguments = [
+        "install",
+        "--disable-pip-version-check",
+        "--platform=\(platform)",
+        "--only-binary=:all:",
+        "--extra-index-url",
+        "https://pypi.anaconda.org/beeware/simple",
+        "--extra-index-url",
+        "https://pypi.anaconda.org/pyswift/simple",
+        "--target", site_path.string,
+        pip
+    ]
+    task.executablePath = "/Users/Shared/psproject/python3/bin/pip3"
+    task.standardInput = nil
+    task.launch()
+    
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    let output = String(data: data, encoding: .utf8)!
+    print(output)
+    return output
+}
+
+
+public class UVTool {
+    
+    static let shared = UVTool(uv: which.uv)
+    
+    private let uv: Path
+    
+    init(uv: Path) {
+        self.uv = uv
+    }
+    
+    public static func help() {
+        let task = Process()
+        task.arguments = ["help"]
+        task.executablePath = shared.uv
+        task.standardInput = nil
+        task.launch()
+        task.waitUntilExit()
+        
+    }
+    
+    public static func Init(path: String, name: String?) {
+        let task = Process()
+        var arguments: [String] = [
+            "init",
+            "--lib", path
+        ]
+        if let name {
+            arguments.append(contentsOf: ["--name", name])
+        }
+        
+        task.arguments = arguments
+        task.executablePath = shared.uv
+        task.standardInput = nil
+        task.launch()
+        task.waitUntilExit()
+        
+    }
+    
+    @_disfavoredOverload
+    public static func export_requirements(project: Path, group: String?) {
+        let task = Process()
+        var arguments = [
+            "export", "--no-hashes",
+            "--no-emit-project",
+            "--directory", project.string
+        ]
+        
+        if let group {
+            arguments.append("--group")
+            arguments.append(group)
+        }
+        arguments.append(contentsOf: ["-o", project.string])
+        
+        task.arguments = arguments
+        task.executablePath = shared.uv
+        task.standardInput = nil
+        task.launch()
+        task.waitUntilExit()
+    }
+    
+    public static func export_requirements(uv_root: Path, group: String?) -> String {
+        let task = Process()
+        var arguments = [
+            "export", "--no-hashes",
+            "--no-emit-project",
+            "--no-dev",
+            "--directory", uv_root.string
+        ]
+        
+        if let group {
+            arguments.append("--group")
+            arguments.append(group)
+        }
+        //arguments.append(contentsOf: ["-o", project.string])
+        
+        let pipe = Pipe()
+        
+        task.standardOutput = pipe
+        //task.standardError = pipe
+        
+        task.arguments = arguments
+        task.executablePath = shared.uv
+        task.standardInput = nil
+        task.launch()
+        task.waitUntilExit()
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        let output = String(data: data, encoding: .utf8)!
+        return output
+    }
 }

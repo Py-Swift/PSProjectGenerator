@@ -230,6 +230,8 @@ public class KivyProject: PSProjectProtocol {
     let ios_only: Bool
     
     var target_types: [ProjectTarget]
+    
+    var pips: [String]
 	
     public init(
         name: String,
@@ -240,7 +242,8 @@ public class KivyProject: PSProjectProtocol {
         workingDir: Path,
         app_path: Path,
         legacy: Bool,
-        platforms: [Platform]
+        platforms: [Platform],
+        pips: [String]
     ) async throws {
 		self.name = name
         self.platforms = platforms
@@ -266,7 +269,7 @@ public class KivyProject: PSProjectProtocol {
 		self.requirements = requirements
 		self.projectSpec = projectSpec
 		self.projectSpecData = try projectSpec?.specData()
-		
+        self.pips = pips
         
         
 		_targets = []
@@ -506,13 +509,29 @@ public class KivyProject: PSProjectProtocol {
             for target_type in target_types {
                 switch target_type {
                 case .iOS:
-                    pipInstall(reqPath, site_path: target_type.site_packages(current: workingDir, ios_only: ios_only))
+                    let site = target_type.site_packages(current: workingDir, ios_only: ios_only)
+                    pipInstall(reqPath, site_path: site)
                 case .macOS:
-                    pipInstall(reqPath, site_path: target_type.site_packages(current: workingDir, ios_only: ios_only))
+                    let site = target_type.site_packages(current: workingDir, ios_only: ios_only)
+                    pipInstall(reqPath, site_path: site)
                 }
             }
 		}
         
+        for target_type in target_types {
+            switch target_type {
+            case .iOS:
+                let site = target_type.site_packages(current: workingDir, ios_only: ios_only)
+                for pip in projectSpecData?.pips ?? pips {
+                    pipInstall(pip: pip, site_path: site)
+                }
+            case .macOS:
+                let site = target_type.site_packages(current: workingDir, ios_only: ios_only)
+                for pip in projectSpecData?.pips ?? pips {
+                    pipInstall(pip: pip, site_path: site)
+                }
+            }
+        }
         
         for site_folder in site_folders {
             if !legacy {
@@ -579,14 +598,14 @@ public class KivyProject: PSProjectProtocol {
             for target_type in target_types {
                 try? loadRequirementsFiles(from: spec, site_path: target_type.resources(current: workingDir, ios_only: ios_only))
                 
-                var imports = [String]()
-                var pyswiftProducts = [String]()
+                var imports = [SwiftPackageData.PythonImport]()
+                //var pyswiftProducts = [String]()
                 
                 
-                if try! loadPythonPackageInfo(from: projectSpecData, imports: &imports, pyswiftProducts: &pyswiftProducts) {
+                if try! loadPythonPackageInfo(from: projectSpecData, imports: &imports) {
                     
                     let mainFile = target_type.sources(current: workingDir, ios_only: ios_only) + "Main.swift"
-                    let newMain = ModifyMainFile(source: try mainFile.read(), imports: imports, pyswiftProducts: pyswiftProducts)
+                    let newMain = ModifyMainFile(source: try mainFile.read(), imports: imports)
                     try! mainFile.write(newMain, encoding: .utf8)
                 }
             }

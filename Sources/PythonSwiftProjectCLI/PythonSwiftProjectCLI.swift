@@ -11,7 +11,8 @@ struct PythonSwiftProjectCLI: AsyncParsableCommand {
 	
 	static var configuration: CommandConfiguration = .init(
 		version: "0.1.4",
-		subcommands: [Kivy.self, SwiftUI.self]
+        subcommands: [Kivy.self, SwiftUI.self, Beeware.self],
+        defaultSubcommand: Beeware.self
 	)
 	
 	
@@ -21,3 +22,5 @@ struct PythonSwiftProjectCLI: AsyncParsableCommand {
 
 	
 }
+
+

@@ -65,15 +65,19 @@ func loadPackageDependencies(from projectSpec: SpecData, output: inout [ProjectS
 //	}
 }
 
-func loadPythonPackageInfo(from projectSpec: SpecData?, imports: inout [String], pyswiftProducts: inout [String]) throws -> Bool {
+func loadPythonPackageInfo(from projectSpec: SpecData?, imports: inout [SwiftPackageData.PythonImport]) throws -> Bool {
     if let packages = projectSpec?.packages {
         for pack in packages {
             if let python_imports = pack.value.python_imports {
-                imports.append(contentsOf: python_imports.modules)
-                pyswiftProducts.append(contentsOf: python_imports.products)
+                for imp in python_imports {
+                    imports.append(imp)
+                    //pyswiftProducts.append(imp.product)
+                }
+                //imports.append(contentsOf: python_imports.modules)
+                //pyswiftProducts.append(contentsOf: python_imports.products)
             }
-            return true
         }
+        return true
     }
 	//guard let spec = try Yams.load(yaml: projectSpec.read()) as? [String: Any] else { return false }
 

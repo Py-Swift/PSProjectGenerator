@@ -11,6 +11,7 @@
 import Foundation
 import PySwiftKit
 import PythonCore
+import PSBackend
 //import PythonFiles
 
 func DEBUG_PRINT(_ items: Any..., separator: String = " ", terminator: String = "\n") {
@@ -125,13 +126,16 @@ class PythonHandler {
         //    status = PyConfig_SetBytesArgv(&config, argc, argv)
         //    pyCheckStatus(status: &status, config: &config, msg: "Unable to configured argc/argv")
         
+        PyImport_AppendInittab(cString("backend_tools"), BackendTools.py_init)
         
         if debug { DEBUG_PRINT("Initializing Python runtime...") }
         status = Py_InitializeFromConfig(&config)
         pyCheckStatus(status: &status, config: &config, msg: "Unable to initialize Python interpreter")
         
-        
-        
+//        let base = UnsafeBufferPointer(start: config.executable!, count: wcslen(config.base_exec_prefix!)).map { c in
+//            Character(UnicodeScalar(Int(c))!)
+//        }
+//        print(String(base))
         //exit(Int32(ret))
         //return ret
     }
@@ -143,14 +147,15 @@ class PythonHandler {
 }
 
 
-func launchPython() throws {
+public func launchPython() throws {
     let python = PythonHandler.shared
     //try PythonFiles.checkModule()
     if !python.defaultRunning {
         python.start(
-            stdlib: "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11",
+            stdlib: "/Users/Shared/psproject/python3/lib/python3.11",
             app_packages: [
                 //PythonFiles.py_modules
+                "/Users/Shared/psproject/backends"
             ],
             debug: true
         )

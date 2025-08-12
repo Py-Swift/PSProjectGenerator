@@ -116,6 +116,8 @@ extension PythonSwiftProjectCLI.Kivy {
         
         @Option(name: .long) var icon: Path?
         
+        @Option(name: .long) var pip: [String] = []
+        
         @Flag() var legacy: Bool = false
 		
 		func run() async throws {
@@ -134,10 +136,11 @@ extension PythonSwiftProjectCLI.Kivy {
                 case let py_spec where (py_spec + "projectSpec.py").exists:
                     spec_file = (py_spec + "projectSpec.py")
                 case let yml_spec where (yml_spec + "projectSpec.yml").exists:
+                    print("found projectSpec.yml in", yml_spec)
                     spec_file = (yml_spec + "projectSpec.yml")
                 default: break
                 }
-            }
+            } 
             // check if relative and create full path to it..
             if let python_src {
                 if python_src.isRelative {
@@ -174,7 +177,8 @@ extension PythonSwiftProjectCLI.Kivy {
                 workingDir: projDir,
                 app_path: app_path,
                 legacy: legacy,
-                platforms: platform
+                platforms: platform,
+                pips: pip
 			)
 			
 			try await proj.createStructure()

@@ -13,7 +13,12 @@ extension PythonSwiftProjectCLI {
 	
 	struct SwiftUI: AsyncParsableCommand {
 		
-		
+        static var configuration: CommandConfiguration = .init(
+            commandName: "swiftui",
+            subcommands: [
+                Create.self
+            ]
+        )
 		
 	}
 }

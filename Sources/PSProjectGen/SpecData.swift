@@ -20,13 +20,19 @@ public struct SwiftPackageData: Decodable {
 		let products: [String]
 		let modules: [String]
 	}
+    public struct PythonImport: Decodable {
+        let product: String
+        let module: String?
+        let import_name: String?
+    }
+    
     let products: [String]?
 	let url: String?
 	let path: String?
 	let branch: String?
 	let version: String?
-	let python_imports: PythonImports?
-   
+	//let python_imports: PythonImports?
+    let python_imports: [PythonImport]?
 }
 
 extension Path: @retroactive Decodable {
@@ -171,27 +177,27 @@ extension PathKit.Path {
         case .yml:
             try YAMLDecoder().decode(SpecData.self, from: read())
         case .py:
-            try pyDecode(path: self)
+            fatalError()
         }
 		
 	}
 }
 
-import PyCodable
-import PySwiftKit
-import PyExecute
-fileprivate func pyDecode(path: Path) throws -> SpecData {
-    try launchPython()
-    let module = PyDict_New()!
-    let code = try path.read(.utf8)
-    PyRun_String(string: code, flag: .file, globals: module, locals: module)?.decref()
-    guard let project = PyDict_GetItemString(module, "project") else {
-        PyErr_Print()
-        fatalError("module has no project variable")
-    }
-    defer {
-        project.decref()
-        module.decref()
-    }
-    return try PyDecoder().decode(SpecData.self, from: project)
-}
+//import PyCodable
+//import PySwiftKit
+//import PyExecute
+//fileprivate func pyDecode(path: Path) throws -> SpecData {
+//    try launchPython()
+//    let module = PyDict_New()!
+//    let code = try path.read(.utf8)
+//    PyRun_String(string: code, flag: .file, globals: module, locals: module)?.decref()
+//    guard let project = PyDict_GetItemString(module, "project") else {
+//        PyErr_Print()
+//        fatalError("module has no project variable")
+//    }
+//    defer {
+//        project.decref()
+//        module.decref()
+//    }
+//    return try PyDecoder().decode(SpecData.self, from: project)
+//}

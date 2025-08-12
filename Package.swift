@@ -22,14 +22,19 @@ let package = Package(
         //.package(url: "https://github.com/PythonSwiftLink/PyCodable", .upToNextMajor(from: "0.0.1")),
         .package(url: "https://github.com/py-swift/PySwiftKit", .upToNextMajor(from: "311.0.0")),
         //.package(url: "https://github.com/PythonSwiftLink/PythonCore", .upToNextMajor(from: "311.0.0")),
-        .package(url: "https://github.com/py-swift/PyCodable", .upToNextMajor(from: "0.0.0")),
+        //.package(url: "https://github.com/py-swift/PyCodable", .upToNextMajor(from: "0.0.0")),
         .package(url: "https://github.com/Py-Swift/XCAssetsProcessor", .upToNextMajor(from: "0.0.0")),
         .package(url: "https://github.com/tuist/XcodeProj.git", .upToNextMajor(from: "8.24.3")),
         .package(url: "https://github.com/kylef/PathKit", .upToNextMajor(from: "1.0.1")),
+        //.package(url: "https://github.com/dduan/TOMLDecoder", from: "0.3.1"),
+        .package(url: "https://github.com/LebJe/TOMLKit", .upToNextMajor(from: "0.6.0")),
+        .package(url: "https://github.com/PerfectlySoft/Perfect-INIParser.git", from: "3.0.0"),
+        .package(url: "https://github.com/ITzTravelInTime/SwiftCPUDetect.git", from: "1.3.0"),
+        .package(url: "https://github.com/apple/swift-algorithms", .upToNextMajor(from: "1.2.1")),
 		//.package(path: "/Volumes/CodeSSD/PythonSwiftGithub/PyCodable")
 		//.package(url: "https://github.com/PythonSwiftLink/SwiftPackageGen", from: .init(0, 0, 3)),
 		//.package(path: "/Volumes/CodeSSD/XcodeGithub/SwiftPackageGen")
-		
+        .package(path: "/Volumes/CodeSSD/beeware_env/test_projects/github/PSBackend")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -60,9 +65,15 @@ let package = Package(
                 .product(name: "SwiftonizeModules", package: "PySwiftKit"),
                 .product(name: "PyExecute", package: "PySwiftKit"),
                 //.product(name: "PythonCore", package: "PythonCore"),
-                .product(name: "PyCodable", package: "PyCodable"),
+                //.product(name: "PyCodable", package: "PyCodable"),
                 .byName(name: "XCAssetsProcessor"),
-                .byName(name: "XcodeProj")
+                .byName(name: "XcodeProj"),
+                .byName(name: "TOMLKit"),
+                .product(name: "INIParser", package: "perfect-iniparser"),
+                .byName(name: "SwiftCPUDetect"),
+                .product(name: "Algorithms", package: "swift-algorithms"),
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .byName(name: "PSBackend")
 				//.product(name: "RecipeBuilder", package: "SwiftPackageGen")
 			],
 			resources: [
@@ -90,6 +101,7 @@ let package = Package(
                 "PSProjectUpdate",
 				//.product(name: "Gzip", package: "GzipSwift"),
 				.product(name: "Zip", package: "Zip"),
+                .byName(name: "PSBackend")
 				//.product(name: "GeneratePackage", package: "SwiftPackageGen"),
 				//.product(name: "RecipeBuilder", package: "SwiftPackageGen")
             ]
