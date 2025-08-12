@@ -90,7 +90,7 @@ public class BWProjectTarget: PSProjTargetProtocol {
         target_type: XcodeTarget_Type,
         contexts: Array<any ContextProtocol>,
         workingDir: Path,
-        app_path: Path,
+        app_path: Path
         //sdk: Target_SDK
     ) async throws {
         
