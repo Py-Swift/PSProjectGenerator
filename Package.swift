@@ -36,7 +36,7 @@ let package = Package(
 		//.package(path: "/Volumes/CodeSSD/XcodeGithub/SwiftPackageGen")
         //.package(path: "/Volumes/CodeSSD/beeware_env/test_projects/github/PSBackend")
         .package(url: "https://github.com/Py-Swift/PSBackend", branch: "master"),
-        .package(path: "/Volumes/CodeSSD/PythonSwiftGithub/SetVersion")
+        .package(path: "./SetVersion")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
