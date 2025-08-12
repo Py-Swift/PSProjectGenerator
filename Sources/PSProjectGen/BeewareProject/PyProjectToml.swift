@@ -25,7 +25,7 @@ public struct PyProjectToml: Decodable {
     }
 }
 
-struct PyBackendLoader {
+enum PyBackendLoader {
     // static let spec_from_file_location = #PyCallable_P<String, Path>(PyImport(from: "importlib.util", import_name: "spec_from_file_location")!)
     // static let module_from_spec = #PyCallable_P<PyPointer>(PyImport(from: "importlib.util", import_name: "module_from_spec")!)
     
@@ -52,6 +52,11 @@ struct PyBackendLoader {
         
         return try .casted(from: backend)
     }
+    
+    public static func install_pyframework_backend() async throws {
+        let backend = try load_backend(name: "pyframework", path: "")
+        try await backend.do_install(support: .init(value: .ps_support))
+    }
 }
 
 extension PyProjectToml {
@@ -59,7 +64,7 @@ extension PyProjectToml {
         let project: Project?
         
         
-        struct Project: Decodable {
+        final class Project: Decodable {
             let name: String?
             let folder_name: String?
             let swift_main: String?
@@ -69,7 +74,15 @@ extension PyProjectToml {
             let dependencies: Dependencies?
             let platforms: [BWProject.PlatformType]
             
-            func get_backends() async throws -> [PSBackend] {
+            private var _loaded_backends: [PSBackend] = []
+            func loaded_backends() async throws -> [PSBackend] {
+                if _loaded_backends.isEmpty {
+                    _loaded_backends = try await get_backends()
+                }
+                return _loaded_backends
+            }
+            
+            private func get_backends() async throws -> [PSBackend] {
                 let backends_root = Path.ps_shared + "backends"
                 let pyswift_backends = backends_root + "PySwiftBackends/src/pyswiftbackends"
                 return try (backends ?? []).compactMap { backend in
@@ -85,6 +98,31 @@ extension PyProjectToml {
                     
                     //return nil
                 }
+            }
+            
+            private enum CodingKeys: CodingKey {
+                case name
+                case folder_name
+                case swift_main
+                case swift_sources
+                case pip_install_app
+                case backends
+                case dependencies
+                case platforms
+            }
+            
+            init(from decoder: any Decoder) throws {
+                let container: KeyedDecodingContainer<PyProjectToml.PySwift.Project.CodingKeys> = try decoder.container(keyedBy: PyProjectToml.PySwift.Project.CodingKeys.self)
+                
+                self.name = try container.decodeIfPresent(String.self, forKey: PyProjectToml.PySwift.Project.CodingKeys.name)
+                self.folder_name = try container.decodeIfPresent(String.self, forKey: PyProjectToml.PySwift.Project.CodingKeys.folder_name)
+                self.swift_main = try container.decodeIfPresent(String.self, forKey: PyProjectToml.PySwift.Project.CodingKeys.swift_main)
+                self.swift_sources = try container.decodeIfPresent([String].self, forKey: PyProjectToml.PySwift.Project.CodingKeys.swift_sources)
+                self.pip_install_app = try container.decodeIfPresent(Bool.self, forKey: PyProjectToml.PySwift.Project.CodingKeys.pip_install_app)
+                self.backends = try container.decodeIfPresent([String].self, forKey: PyProjectToml.PySwift.Project.CodingKeys.backends)
+                self.dependencies = try container.decodeIfPresent(PyProjectToml.PySwift.Project.Dependencies.self, forKey: PyProjectToml.PySwift.Project.CodingKeys.dependencies)
+                self.platforms = try container.decode([BWProject.PlatformType].self, forKey: PyProjectToml.PySwift.Project.CodingKeys.platforms)
+                
             }
         }
     }

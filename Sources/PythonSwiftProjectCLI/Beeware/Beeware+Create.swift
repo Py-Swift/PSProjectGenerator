@@ -49,6 +49,8 @@ struct Create: AsyncParsableCommand {
             if !Validation.hostPython() { return }
             try Validation.backends()
             
+            try await Validation.supportPythonFramework()
+            
             if arch_info.isIntel() {
                 print(arch_info)
             }

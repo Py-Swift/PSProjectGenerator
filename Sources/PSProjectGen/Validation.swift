@@ -54,6 +54,7 @@ public enum Validation {
         if !__init__.exists { try __init__.write("") }
         
         PyTools.pipInstall(pip: "pip", "-t", backends.string)
+        PyTools.pipInstall(pip: "requests", "-t", backends.string)
         PyTools.pipInstall(pip: "git+https://github.com/Py-Swift/PySwiftBackends", "-t", backends.string)
         
     }
@@ -65,8 +66,8 @@ public enum Validation {
         return pyFramework.exists
     }
     
-    public static func supportPythonFramework() throws {
+    public static func supportPythonFramework() async throws {
         if validateSupportPythonFramework() { return }
-        
+        try await PyBackendLoader.load_backend(name: "pyframework", path: "").do_install(support: .init(value: .ps_support))
     }
 }

@@ -192,7 +192,7 @@ public class BWProject: PSProjectProtocol {
         
         _targets = []
         
-        backends = try await pyswift_project?.get_backends() ?? []
+        backends = try await pyswift_project?.loaded_backends() ?? []
         
         _targets = try await chucked_platforms.asyncMap({ (target, plats) in
             switch target {

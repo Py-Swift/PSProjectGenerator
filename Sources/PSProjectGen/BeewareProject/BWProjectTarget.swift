@@ -191,7 +191,7 @@ public class BWProjectTarget: PSProjTargetProtocol {
             case .iphoneos: .iphoneos
             case .macos: .macos
             }
-            for backend in try await project.get_backends() {
+            for backend in try await project.loaded_backends() {
                 output.append(contentsOf: try await backend.target_dependencies(target_type: ttype))
             }
             
@@ -245,7 +245,7 @@ public class BWProjectTarget: PSProjTargetProtocol {
         }
         
         let py_plist = PyDict_New()!
-        for backend in try await toml.pyswift.project?.get_backends() ?? [] {
+        for backend in try await toml.pyswift.project?.loaded_backends() ?? [] {
             try backend.plist_entries(plist: py_plist, target_type: .iphoneos)
         }
         try mainkeys.merge(pyDict: try .init(object: py_plist))
