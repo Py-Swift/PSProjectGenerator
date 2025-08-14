@@ -2,7 +2,15 @@
 import Foundation
 import PathKit
 
-
+extension Array {
+    @inlinable public func asyncMap<T, E>(_ transform: (Element) async throws(E) -> T) async throws(E) -> [T] where E : Error {
+        var elements = [T]()
+        for element in self {
+            elements.append(try await transform(element))
+        }
+        return elements
+    }
+}
 
 public extension PathKit.Path {
 	var isLibA: Bool {

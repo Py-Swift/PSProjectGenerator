@@ -17,13 +17,19 @@ public protocol ArchProtocol {
 public struct Archs {
     public class X86_64: ArchProtocol {
         public var name: String { "x86_64" }
+        
+        public init() {}
     }
     
     public class Arm64: ArchProtocol {
         public var name: String { "arm64" }
+        
+        public init() {}
     }
     public class Universal: ArchProtocol {
         public var name: String { "universal2" }
+        
+        public init() {}
     }
 }
 
@@ -55,6 +61,8 @@ public struct SDKS {
         public var wheel_name: String { name }
         public var min_os: String { "13_0" }
         public var xcode_target: String { "IphoneOS"}
+        
+        public init() {}
     }
     
     public class IphoneSimulator: SDKProtocol {
@@ -62,6 +70,8 @@ public struct SDKS {
         public var wheel_name: String { name }
         public var min_os: String { "13_0" }
         public var xcode_target: String { "IphoneOS"}
+        
+        public init() {}
     }
     
     public class MacOS: SDKProtocol {
@@ -69,6 +79,8 @@ public struct SDKS {
         public var wheel_name: String { "macosx" }
         public var min_os: String { "10_15" }
         public var xcode_target: String { "MacOS"}
+        
+        public init() {}
     }
 }
 
@@ -167,7 +179,7 @@ public final class PlatformContext<Arch, SDK>: ContextProtocol where Arch: ArchP
     public var pip3: Path = "/Users/Shared/psproject/hostpython3/bin/pip3"
     public var python3: Path = "/Users/Shared/psproject/hostpython3/bin/python3"
     
-    init(arch: Arch, sdk: SDK, root: Path) throws {
+    public init(arch: Arch, sdk: SDK, root: Path) throws {
         
         guard root.exists else { throw ContextError.pathRootMissing(root) }
         

@@ -57,115 +57,115 @@ func downloadZipUnPacked(url: URL, dst: Path) async throws -> Path {
 //	debugPrint(try JSONSerialization.jsonObject(with: releases))
 //}
 
-public protocol KSLReleaseProtocol {
-    func downloadFiles(legacy: Bool) async throws -> [URL]?
-}
-
-public struct ReleaseAssetDownloader {
-    
-    class PythonCore: KSLReleaseProtocol {
-        
-        init() {}
-        
-        func downloadFiles(legacy: Bool) async throws -> [URL]? {
-            var outputs = [URL]()
-            let kivy_release = try await loadGithub(owner: "kv-swift", repo: "PythonCore")
-            if let release = kivy_release.releases.first  {
-                let zips = release.assets.compactMap { r in
-                    switch r.name {
-                    case "macos-python-stdlib.zip":
-                        return URL(string: r.browser_download_url )
-                    default: return nil
-                    }
-                    
-                }
-                print(zips)
-                return try await zips.asyncMap { zip in
-                    try await downloadAsset(url: zip)
-                }
-            }
-            return nil
-        }
-        
-        
-        
-    }
-	
-	class KivyCore: KSLReleaseProtocol {
-		
-		init() {
-			
-		}
-		
-		
-        func downloadFiles(legacy: Bool) async throws -> [URL]? {
-			var outputs = [URL]()
-			let kivy_release = try await loadGithub(owner: "kv-swift", repo: "KivyCore")
-			if let release = kivy_release.releases.first  {
-				let zips = release.assets.compactMap { r in
-					switch r.name {
-					case "site-packages.zip":
-						
-						return URL(string: r.browser_download_url )
-                    case "dist_files.zip":
-                        if !legacy { return nil }
-                        return URL(string: r.browser_download_url )
-					default: return nil
-					}
-					
-				}
-				for zip in zips {
-                    print(zip)
-					let dest: URL = try await downloadAsset(url: zip)
-					outputs.append(dest)
-				}
-				
-				return outputs
-			}
-			
-			return nil
-		}
-	}
-	
-	class KivyExtra: KSLReleaseProtocol {
-		
-		let recipes: [String]
-		
-		init(recipes: [String]) {
-			self.recipes = recipes
-		}
-		
-		
-        func downloadFiles(legacy: Bool) async throws -> [URL]? {
-			guard let kivy_release = try await loadGithub(owner: "PythonSwiftLink", repo: "KivyExtra").releases.first else {
-				return nil
-			}
-			var output: [URL] = []
-			for recipe in recipes.lazy.map(\.localizedLowercase).compactMap(\.kivy_extra_name) {
-				if let dist_asset = kivy_release.assets.first(where: {$0.name == "\(recipe)_dist.zip"}) {
-					let dest: URL = try await download(url: .init(string: dist_asset.browser_download_url)!)
-					output.append(dest)
-				}
-				if let site_asset = kivy_release.assets.first(where: {$0.name == "\(recipe)_site.zip"}) {
-					let dest: URL = try await download(url: .init(string: site_asset.browser_download_url)!)
-					output.append(dest)
-				}
-				switch recipe {
-				case .kiwisolver: break
-				case .ffpyplayer: break
-				case .ffmpeg: break
-				case .pillow: break
-				case .materialyoucolor: break
-				case .matplotlib: break
-				}
-				
-			}
-			
-			return output
-		}
-	}
-	
-}
+//public protocol KSLReleaseProtocol {
+//    func downloadFiles(legacy: Bool) async throws -> [URL]?
+//}
+//
+//public struct ReleaseAssetDownloader {
+//    
+//    class PythonCore: KSLReleaseProtocol {
+//        
+//        init() {}
+//        
+//        func downloadFiles(legacy: Bool) async throws -> [URL]? {
+//            var outputs = [URL]()
+//            let kivy_release = try await loadGithub(owner: "kv-swift", repo: "PythonCore")
+//            if let release = kivy_release.releases.first  {
+//                let zips = release.assets.compactMap { r in
+//                    switch r.name {
+//                    case "macos-python-stdlib.zip":
+//                        return URL(string: r.browser_download_url )
+//                    default: return nil
+//                    }
+//                    
+//                }
+//                print(zips)
+//                return try await zips.asyncMap { zip in
+//                    try await downloadAsset(url: zip)
+//                }
+//            }
+//            return nil
+//        }
+//        
+//        
+//        
+//    }
+//	
+//	class KivyCore: KSLReleaseProtocol {
+//		
+//		init() {
+//			
+//		}
+//		
+//		
+//        func downloadFiles(legacy: Bool) async throws -> [URL]? {
+//			var outputs = [URL]()
+//			let kivy_release = try await loadGithub(owner: "kv-swift", repo: "KivyCore")
+//			if let release = kivy_release.releases.first  {
+//				let zips = release.assets.compactMap { r in
+//					switch r.name {
+//					case "site-packages.zip":
+//						
+//						return URL(string: r.browser_download_url )
+//                    case "dist_files.zip":
+//                        if !legacy { return nil }
+//                        return URL(string: r.browser_download_url )
+//					default: return nil
+//					}
+//					
+//				}
+//				for zip in zips {
+//                    print(zip)
+//					let dest: URL = try await downloadAsset(url: zip)
+//					outputs.append(dest)
+//				}
+//				
+//				return outputs
+//			}
+//			
+//			return nil
+//		}
+//	}
+//	
+//	class KivyExtra: KSLReleaseProtocol {
+//		
+//		let recipes: [String]
+//		
+//		init(recipes: [String]) {
+//			self.recipes = recipes
+//		}
+//		
+//		
+//        func downloadFiles(legacy: Bool) async throws -> [URL]? {
+//			guard let kivy_release = try await loadGithub(owner: "PythonSwiftLink", repo: "KivyExtra").releases.first else {
+//				return nil
+//			}
+//			var output: [URL] = []
+//			for recipe in recipes.lazy.map(\.localizedLowercase).compactMap(\.kivy_extra_name) {
+//				if let dist_asset = kivy_release.assets.first(where: {$0.name == "\(recipe)_dist.zip"}) {
+//					let dest: URL = try await download(url: .init(string: dist_asset.browser_download_url)!)
+//					output.append(dest)
+//				}
+//				if let site_asset = kivy_release.assets.first(where: {$0.name == "\(recipe)_site.zip"}) {
+//					let dest: URL = try await download(url: .init(string: site_asset.browser_download_url)!)
+//					output.append(dest)
+//				}
+//				switch recipe {
+//				case .kiwisolver: break
+//				case .ffpyplayer: break
+//				case .ffmpeg: break
+//				case .pillow: break
+//				case .materialyoucolor: break
+//				case .matplotlib: break
+//				}
+//				
+//			}
+//			
+//			return output
+//		}
+//	}
+//	
+//}
 
 
 
@@ -213,81 +213,81 @@ extension Array where Element == String {
 	
 }
 
-public class DistFilesDownload {
-	enum DistTargets: String {
-		case kivy = "kivy_dist"
-		case numpy = "numpy_dist"
-		case python = "python_dist"
-	}
-	
-	
-	
-	let target: DistTargets
-	let working_dir: Path
-	let temp_dir: Path
-	
-	let ios_folder_name = "iphoneos"
-	let sim_folder_name = "iphonesimulator"
-	var ios_folder: Path {
-		temp_dir + "dist_lib" + ios_folder_name
-	}
-	var sim_folder: Path {
-		temp_dir + "dist_lib" + sim_folder_name
-	}
-	
-	
-	
-	init(target: DistTargets, working_dir: Path) async throws {
-		self.target = target
-		self.working_dir = working_dir
-		self.temp_dir = try .processUniqueTemporary()// + target.rawValue
-		
-		//try await downloadTargetAndExtract()
-		
-	}
-	
-	func downloadTargetAndExtract() async throws {
-		guard let url = try await downloadDistLink() else { return }
-		var download: Path = .init( try await download(url: url ).path() )
-		let new_loc = temp_dir + "\(target.rawValue).zip"
-		try download.move(new_loc)
-		download = new_loc
+//public class DistFilesDownload {
+//	enum DistTargets: String {
+//		case kivy = "kivy_dist"
+//		case numpy = "numpy_dist"
+//		case python = "python_dist"
+//	}
+//	
+//	
+//	
+//	let target: DistTargets
+//	let working_dir: Path
+//	let temp_dir: Path
+//	
+//	let ios_folder_name = "iphoneos"
+//	let sim_folder_name = "iphonesimulator"
+//	var ios_folder: Path {
+//		temp_dir + "dist_lib" + ios_folder_name
+//	}
+//	var sim_folder: Path {
+//		temp_dir + "dist_lib" + sim_folder_name
+//	}
+//	
+//	
+//	
+//	init(target: DistTargets, working_dir: Path) async throws {
+//		self.target = target
+//		self.working_dir = working_dir
+//		self.temp_dir = try .processUniqueTemporary()// + target.rawValue
 //		
-		let dst = temp_dir + target.rawValue
-		try dst.mkpath()
-		try Zip.unzipFile(download.url, destination: temp_dir.url, overwrite: true, password: nil)
-		try download.delete()
-		for file in ios_folder.filter(\.isLibA) {
-			try file.move( working_dir + "dist_lib" + ios_folder_name + file.lastComponent )
-		}
-		for file in sim_folder.filter(\.isLibA) {
-			try file.move( working_dir + "dist_lib" + sim_folder_name + file.lastComponent )
-		}
-		try dst.delete()
-	}
-	
-	
-	func downloadDistLink() async throws -> URL? {
-		switch target {
-		case .kivy:
-			let kivy_release = try await loadGithub(owner: "PythonSwiftLink", repo: "KivyCore")
-			if let release = kivy_release.releases.first, let dist = release.assets.first(where: {$0.name == "kivy_dist.zip"}) {
-				return .init(string: dist.browser_download_url)
-			}
-		case .numpy:
-			let kivy_release = try await loadGithub(owner: "PythonSwiftLink", repo: "KivyNumpy")
-			if let release = kivy_release.releases.first, let dist = release.assets.first(where: {$0.name == "numpy_dist.zip"}) {
-				return .init(string: dist.browser_download_url)
-			}
-		case .python:
-			let kivy_release = try await loadGithub(owner: "PythonSwiftLink", repo: "KivyPythonCore")
-			if let release = kivy_release.releases.first, let dist = release.assets.first(where: {$0.name == "python_dist.zip"}) {
-				return .init(string: dist.browser_download_url)
-			}
-		}
-		return nil
-	}
-}
+//		//try await downloadTargetAndExtract()
+//		
+//	}
+//	
+//	func downloadTargetAndExtract() async throws {
+//		guard let url = try await downloadDistLink() else { return }
+//		var download: Path = .init( try await download(url: url ).path() )
+//		let new_loc = temp_dir + "\(target.rawValue).zip"
+//		try download.move(new_loc)
+//		download = new_loc
+////		
+//		let dst = temp_dir + target.rawValue
+//		try dst.mkpath()
+//		try Zip.unzipFile(download.url, destination: temp_dir.url, overwrite: true, password: nil)
+//		try download.delete()
+//		for file in ios_folder.filter(\.isLibA) {
+//			try file.move( working_dir + "dist_lib" + ios_folder_name + file.lastComponent )
+//		}
+//		for file in sim_folder.filter(\.isLibA) {
+//			try file.move( working_dir + "dist_lib" + sim_folder_name + file.lastComponent )
+//		}
+//		try dst.delete()
+//	}
+//	
+//	
+//	func downloadDistLink() async throws -> URL? {
+//		switch target {
+//		case .kivy:
+//			let kivy_release = try await loadGithub(owner: "PythonSwiftLink", repo: "KivyCore")
+//			if let release = kivy_release.releases.first, let dist = release.assets.first(where: {$0.name == "kivy_dist.zip"}) {
+//				return .init(string: dist.browser_download_url)
+//			}
+//		case .numpy:
+//			let kivy_release = try await loadGithub(owner: "PythonSwiftLink", repo: "KivyNumpy")
+//			if let release = kivy_release.releases.first, let dist = release.assets.first(where: {$0.name == "numpy_dist.zip"}) {
+//				return .init(string: dist.browser_download_url)
+//			}
+//		case .python:
+//			let kivy_release = try await loadGithub(owner: "PythonSwiftLink", repo: "KivyPythonCore")
+//			if let release = kivy_release.releases.first, let dist = release.assets.first(where: {$0.name == "python_dist.zip"}) {
+//				return .init(string: dist.browser_download_url)
+//			}
+//		}
+//		return nil
+//	}
+//}
 
 
 

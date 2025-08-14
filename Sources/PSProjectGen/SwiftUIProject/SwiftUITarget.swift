@@ -194,19 +194,6 @@ import XCAssetsProcessor
 
 
 
-fileprivate func swiftui_loadBuildConfigKeys(from projectSpec: SpecData, keys: inout [String:Any]) throws {
-    // DEVELOPMENT_TEAM
-    guard let id = projectSpec.development_team?.id else { return }
-    keys["DEVELOPMENT_TEAM"] = id
-//    guard let spec = try Yams.load(yaml: projectSpec.read()) as? [String: Any] else { return }
-//    if let team = spec["development_team"] as? [String:String] {
-//        if let id = team["id"] {
-//            keys["DEVELOPMENT_TEAM"] = id
-//        }
-//    }
-}
-
-
 fileprivate func appFile() -> String{
     """
     import SwiftUI

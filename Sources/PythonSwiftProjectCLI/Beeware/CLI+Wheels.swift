@@ -1,8 +1,6 @@
 //
-//  Beeware+Wheels.swift
+//  CLI+Wheels.swift
 //  PythonSwiftProject
-//
-//  Created by CodeBuilder on 26/07/2025.
 //
 import Foundation
 import ArgumentParser

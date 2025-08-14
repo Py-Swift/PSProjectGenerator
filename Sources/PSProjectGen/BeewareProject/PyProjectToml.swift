@@ -12,9 +12,9 @@ import PySwiftWrapper
 
 public struct PyProjectToml: Decodable {
     
-    let project: PyProject?
-    let pyswift: PySwift
-    let dependency_groups: [String: [String]]?
+    public let project: PyProject?
+    public let pyswift: PySwift
+    public let dependency_groups: [String: [String]]?
     let tool: Tool?
     
     enum CodingKeys: String, CodingKey {
@@ -60,19 +60,19 @@ enum PyBackendLoader {
 }
 
 extension PyProjectToml {
-    struct PySwift: Decodable {
-        let project: Project?
+    public struct PySwift: Decodable {
+        public let project: Project?
         
         
-        final class Project: Decodable {
-            let name: String?
-            let folder_name: String?
-            let swift_main: String?
-            let swift_sources: [String]?
-            let pip_install_app: Bool?
-            let backends: [String]?
-            let dependencies: Dependencies?
-            let platforms: [BWProject.PlatformType]
+        public final class Project: Decodable {
+            public let name: String?
+            public let folder_name: String?
+            public let swift_main: String?
+            public let swift_sources: [String]?
+            public let pip_install_app: Bool?
+            public let backends: [String]?
+            public let dependencies: Dependencies?
+            public let platforms: [BWProject.PlatformType]
             
             private var _loaded_backends: [PSBackend] = []
             func loaded_backends() async throws -> [PSBackend] {
@@ -111,7 +111,7 @@ extension PyProjectToml {
                 case platforms
             }
             
-            init(from decoder: any Decoder) throws {
+            public init(from decoder: any Decoder) throws {
                 let container: KeyedDecodingContainer<PyProjectToml.PySwift.Project.CodingKeys> = try decoder.container(keyedBy: PyProjectToml.PySwift.Project.CodingKeys.self)
                 
                 self.name = try container.decodeIfPresent(String.self, forKey: PyProjectToml.PySwift.Project.CodingKeys.name)
@@ -127,8 +127,8 @@ extension PyProjectToml {
         }
     }
     
-    struct PyProject: Decodable {
-        let name: String?
+    public struct PyProject: Decodable {
+        public let name: String?
     }
     
     struct Tool: Decodable {
@@ -147,7 +147,7 @@ extension PyProjectToml {
 
 extension PyProjectToml.PySwift.Project {
     public struct Dependencies: Decodable {
-        let pips: [String]?
+        public let pips: [String]?
     }
 }
 

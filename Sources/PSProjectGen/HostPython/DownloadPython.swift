@@ -24,7 +24,7 @@ import PathKit
 func downloadPython(version: String) async throws -> Path {
 	
 	guard let url: URL = .init(string: "https://www.python.org/ftp/python/\(version)/Python-\(version).tgz") else { throw CocoaError.error(.fileNoSuchFile)}
-	let (data, response) = try await URLSession.shared.data(from: url)
+	let (data, _) = try await URLSession.shared.data(from: url)
 	let tmp = try Path.uniqueTemporary() + "Python-\(version).tgz"
 	try tmp.write(data)
 	
@@ -40,7 +40,7 @@ func downloadOpenSSL(version: String) async throws -> Path {
 	
 	guard let url: URL = .init(string: "http://www.openssl.org/source/openssl-\(version).tar.gz") else { throw CocoaError.error(.fileNoSuchFile)}
 	print("downloading \(url)")
-	let (data, response) = try await URLSession.shared.data(from: url)
+	let (data, _) = try await URLSession.shared.data(from: url)
 	let tmp = try Path.uniqueTemporary() + "openssl-\(version).tar.gz"
 	try tmp.write(data)
 	print("temporary path is: \n\t\(tmp.string)")

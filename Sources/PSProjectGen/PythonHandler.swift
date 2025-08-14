@@ -154,7 +154,6 @@ public func launchPython() throws {
         python.start(
             stdlib: "/Users/Shared/psproject/hostpython3/lib/python3.11",
             app_packages: [
-                //PythonFiles.py_modules
                 "/Users/Shared/psproject/backends"
             ],
             debug: true

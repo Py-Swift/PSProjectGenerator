@@ -232,6 +232,13 @@ public class BWProjectTarget: PSProjTargetProtocol {
 		
 		return output
 	}
+    
+    private func loadBasePlistKeys(from url: URL,  keys: inout [String:Any]) throws {
+    
+        guard let spec = try Yams.load(yaml: .init(contentsOf: url)) as? [String: Any] else { return }
+        keys.merge(spec)
+    }
+    
 	
 	public func info() async throws -> ProjectSpec.Plist {
         var mainkeys: [String:Any] = switch target_type {
