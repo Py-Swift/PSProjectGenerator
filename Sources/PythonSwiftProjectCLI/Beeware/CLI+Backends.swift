@@ -1,0 +1,71 @@
+//
+//  CLI+Backends.swift
+//  PythonSwiftProject
+//
+import Foundation
+import PathKit
+import ArgumentParser
+import PSProjectGen
+import TOMLKit
+
+extension PythonSwiftProjectCLI {
+    struct Backends: AsyncParsableCommand {
+        
+        static var configuration: CommandConfiguration = .init(
+            subcommands: [
+                Install.self,
+                Update.self
+            ]
+        )
+        
+        
+    }
+}
+
+extension PythonSwiftProjectCLI.Backends {
+    struct Install: AsyncParsableCommand {
+        
+        @Argument var url: String
+        
+        func run() async throws {
+            if !Validation.hostPython() { return }
+            try launchPython()
+            
+            let backends = Path.ps_shared + "backends"
+            
+            if !backends.exists {
+                try? backends.mkdir()
+            }
+            
+            let __init__ = backends + "__init__.py"
+            if !__init__.exists { try __init__.write("") }
+            
+            PyTools.pipInstall(pip: "git+\(url)", "-U", "-t", backends.string)
+        }
+    }
+}
+
+extension PythonSwiftProjectCLI.Backends {
+    struct Update: AsyncParsableCommand {
+        
+        func run() async throws {
+            
+            if !Validation.hostPython() { return }
+            try launchPython()
+            
+            let backends = Path.ps_shared + "backends"
+            
+            if !backends.exists {
+                try? backends.mkdir()
+            }
+            
+            let __init__ = backends + "__init__.py"
+            if !__init__.exists { try __init__.write("") }
+            
+            PyTools.pipInstall(pip: "pip", "-U" , "-t", backends.string)
+            PyTools.pipInstall(pip: "requests", "-U", "-t", backends.string)
+            PyTools.pipInstall(pip: "git+https://github.com/Py-Swift/PySwiftBackends", "-U", "-t", backends.string)
+        }
+        
+    }
+}

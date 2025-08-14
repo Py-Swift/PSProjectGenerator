@@ -324,7 +324,7 @@ public class BWProject: PSProjectProtocol {
 	}
 	
 	public func specOptions() async throws -> ProjectSpec.SpecOptions {
-		return .init(bundleIdPrefix: "org.kivy")
+		return .init(bundleIdPrefix: "org.pyswift")
 	}
 	
 	public func fileGroups() async throws -> [String] {

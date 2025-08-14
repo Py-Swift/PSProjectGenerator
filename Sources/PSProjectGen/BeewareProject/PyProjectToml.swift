@@ -30,20 +30,21 @@ enum PyBackendLoader {
     // static let module_from_spec = #PyCallable_P<PyPointer>(PyImport(from: "importlib.util", import_name: "module_from_spec")!)
     
     
-    static func load_backend(name: String, path: Path) throws -> PSBackend {
-//        let spec = spec_from_file_location(name, path)
-//        let mod = module_from_spec(spec)
-//        
-//        let loader = PyObject_GetAttr(spec, "loader")!
-//        let exec_module = "exec_module".pyPointer
-//        PyObject_CallMethodOneArg(loader, exec_module, mod)
-//        PyErr_Print()
-//        let backend = PyObject_GetAttr(mod, "backend")!
-//        spec.decref()
-//        loader.decref()
-//        exec_module.decref()
+    static func load_backend(name: String, path: Path? = nil) throws -> PSBackend {
         guard
             let _backend = PyImport_ImportModule("pyswiftbackends.\(name)"),
+            let backend = PyObject_GetAttr(_backend, "backend")
+        else {
+            PyErr_Print()
+            fatalError()
+        }
+        
+        return try .casted(from: backend)
+    }
+    
+    static func load_backend(external name: String, path: Path? = nil) throws -> PSBackend {
+        guard
+            let _backend = PyImport_ImportModule("\(name)"),
             let backend = PyObject_GetAttr(_backend, "backend")
         else {
             PyErr_Print()
@@ -85,18 +86,17 @@ extension PyProjectToml {
             private func get_backends() async throws -> [PSBackend] {
                 let backends_root = Path.ps_shared + "backends"
                 let pyswift_backends = backends_root + "PySwiftBackends/src/pyswiftbackends"
+                
                 return try (backends ?? []).compactMap { backend in
-                    try PyBackendLoader.load_backend(
-                        name: backend,
-                        path: pyswift_backends + "\(backend)/__init__.py"
-                    )
-                    // spec = importlib.util.spec_from_file_location(
-                    // name, join(custom_recipe_path, "__init__.py")
-                    // )
-                    // mod = importlib.util.module_from_spec(spec)
-                    // spec.loader.exec_module(mod)
-                    
-                    //return nil
+                    if backend.contains(".") {
+                        try PyBackendLoader.load_backend(
+                            external: backend
+                        )
+                    } else {
+                        try PyBackendLoader.load_backend(
+                            name: backend
+                        )
+                    }
                 }
             }
             

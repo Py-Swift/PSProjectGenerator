@@ -16,6 +16,7 @@ struct PythonSwiftProjectCLI: AsyncParsableCommand {
             Create.self,
             Update.self,
             Init.self,
+            Backends.self,
             HostPython.self,
             Template.self,
             Wheels.self
