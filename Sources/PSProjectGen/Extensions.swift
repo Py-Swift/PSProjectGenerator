@@ -1,6 +1,7 @@
 
 import Foundation
 import PathKit
+import PSTools
 
 extension Array {
     @inlinable public func asyncMap<T, E>(_ transform: (Element) async throws(E) -> T) async throws(E) -> [T] where E : Error {
@@ -18,19 +19,9 @@ public extension PathKit.Path {
 	}
 }
 
-fileprivate func pathsToAdd() -> [String] {[
-    "/usr/local/bin",
-    "/opt/homebrew/bin"
-]}
 
-extension String {
-    mutating func extendedPath() {
-        self += ":\(pathsToAdd().joined(separator: ":"))"
-    }
-    mutating func strip() {
-        self.removeLast(1)
-    }
-}
+
+
 
 extension URL {
     var asPath: Path {
@@ -54,19 +45,7 @@ extension Bundle {
     }
 }
 
-extension Process {
-    public var executablePath: Path? {
-        get {
-            if let path = executableURL?.path() {
-                return .init(path)
-            }
-            return nil
-        }
-        set {
-            executableURL = newValue?.url
-        }
-    }
-}
+
 
 func which_python() throws -> Path {
     let proc = Process()
@@ -91,64 +70,11 @@ func which_python() throws -> Path {
     return .init(path)
 }
 
-func which_pip3() throws -> Path {
-    let proc = Process()
-    //proc.executableURL = .init(filePath: "/bin/zsh")
-    proc.executableURL = .init(filePath: "/usr/bin/which")
-    proc.arguments = ["pip3.11"]
-    let pipe = Pipe()
-    
-    proc.standardOutput = pipe
-    var env = ProcessInfo.processInfo.environment
-    env["PATH"]?.extendedPath()
-    proc.environment = env
-    
-    try! proc.run()
-    proc.waitUntilExit()
-    
-    guard
-        let data = try? pipe.fileHandleForReading.readToEnd(),
-        var path = String(data: data, encoding: .utf8)
-    else { fatalError() }
-    path.strip()
-    return .init(path)
-}
 
-@dynamicMemberLookup
-public class Which {
-    
-    public subscript(dynamicMember member: String) -> Path {
-        let proc = Process()
-        //proc.executableURL = .init(filePath: "/bin/zsh")
-        proc.executableURL = .init(filePath: "/usr/bin/which")
-        proc.arguments = [member]
-        let pipe = Pipe()
-        
-        proc.standardOutput = pipe
-        var env = ProcessInfo.processInfo.environment
-        env["PATH"]?.extendedPath()
-        proc.environment = env
-        
-        try! proc.run()
-        proc.waitUntilExit()
-        
-        guard
-            let data = try? pipe.fileHandleForReading.readToEnd(),
-            var path = String(data: data, encoding: .utf8)
-        else { fatalError() }
-        path.strip()
-        return .init(path)
-    }
-}
 
-public let which = Which()
 
-extension URLSession {
-    public static func download(from url: URL, delegate: (any URLSessionTaskDelegate)? = nil) async throws -> (Path, URLResponse) {
-        let result: (URL, URLResponse) = try await shared.download(from: url)
-        return (Path(result.0.path()), result.1)
-    }
-}
+
+
 
 extension URL {
     public static var beeware_python_ios: URL {
@@ -160,8 +86,7 @@ extension URL {
     }
 }
 extension Path {
-    public static var ps_shared: Path { "/Users/Shared/psproject"}
-    public static var ps_support: Path { ps_shared + "support" }
+    
     
     public static func ios_python() async throws -> Path {
         let py = ps_support + "Python.xcframework"
@@ -213,21 +138,4 @@ extension Path {
     }
 }
 
-extension Process {
-    @discardableResult
-    static func untar(url: Path) throws -> Int32 {
-        let targs = [
-            "-xzvf", url.string
-        ]
-        let task = Process()
-        //task.launchPath = "/bin/zsh"
-        task.executableURL = .tar
-        task.arguments = targs
-        
-        try task.run()
-        task.waitUntilExit()
-        return task.terminationStatus
-    }
-    
-    
-}
+

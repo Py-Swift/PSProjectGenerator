@@ -8,6 +8,7 @@
 import Foundation
 
 import PathKit
+import PSTools
 
 public extension URL {
 	static let ZSH = URL(filePath: "/bin/zsh")
@@ -16,19 +17,7 @@ public extension URL {
     static let tar = URL(filePath: "/usr/bin/tar")
 }
 
-public extension Path {
-	static let hostPython = Path.ps_shared + "hostpython3"
-	static let venv = Path.hostPython + "venv"
-	static let venvActivate = (Path.venv + "bin/activate")
-    
-    var escapedString: String {
-        string.replacingOccurrences(of: " ", with: "\\ ")
-    }
-    var escapedWithoutExt: String {
-        
-        lastComponentWithoutExtension.replacingOccurrences(of: " ", with: "\\ ")
-    }
-}
+
 
 @discardableResult
 public func buildHostPython(version: String = "3.11.6", path: Path = .hostPython) async throws -> Int32 {

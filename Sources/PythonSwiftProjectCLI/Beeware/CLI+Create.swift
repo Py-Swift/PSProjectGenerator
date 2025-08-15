@@ -6,6 +6,7 @@ import PSProjectGen
 import TOMLKit
 import MachO
 import SwiftCPUDetect
+import PSTools
 
 let arch_info = CpuArchitecture.current() ?? .intel64
 

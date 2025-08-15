@@ -8,6 +8,7 @@ import PathKit
 import PSProjectGen
 import Zip
 import TOMLKit
+import PSTools
 
 extension PythonSwiftProjectCLI {
     

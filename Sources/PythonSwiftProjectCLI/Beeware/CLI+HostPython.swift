@@ -8,6 +8,7 @@ import ArgumentParser
 import PathKit
 import PSProjectGen
 import Zip
+import PSTools
 
 extension PythonSwiftProjectCLI {
     struct HostPython: AsyncParsableCommand {

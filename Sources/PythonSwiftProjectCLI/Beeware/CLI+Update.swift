@@ -9,7 +9,7 @@ import PSProjectGen
 import TOMLKit
 import MachO
 import SwiftCPUDetect
-
+import PSTools
 
 extension PythonSwiftProjectCLI {
     

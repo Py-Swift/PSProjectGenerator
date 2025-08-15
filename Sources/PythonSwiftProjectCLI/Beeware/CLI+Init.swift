@@ -3,7 +3,7 @@ import PathKit
 import ArgumentParser
 import PSProjectGen
 import TOMLKit
-
+import PSTools
 
 
 extension PythonSwiftProjectCLI {

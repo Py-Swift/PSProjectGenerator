@@ -21,16 +21,16 @@ func download(url: URL) async throws -> URL {
 	return downloadURL
 }
 
-func downloadAsset(url: URL) async throws -> URL {
-	let (downloadURL, _) = try await URLSession.shared.download(from: url)
-	let downloadPath = Path(downloadURL)
-	let filename = url.lastPathComponent
-    let new_url = downloadURL.deletingLastPathComponent().appending(path: filename)
-    let new_url_path = new_url.asPath
-    if new_url_path.exists { try new_url_path.delete() }
-    try? downloadPath.move(new_url_path)
-	return new_url
-}
+//func downloadAsset(url: URL) async throws -> URL {
+//	let (downloadURL, _) = try await URLSession.shared.download(from: url)
+//	let downloadPath = Path(downloadURL)
+//	let filename = url.lastPathComponent
+//    let new_url = downloadURL.deletingLastPathComponent().appending(path: filename)
+//    let new_url_path = new_url.asPath
+//    if new_url_path.exists { try new_url_path.delete() }
+//    try? downloadPath.move(new_url_path)
+//	return new_url
+//}
 
 func downloadZipUnPacked(url: String, dst: Path) async throws -> Path {
 	let download: Path = .init( try await download(url: .init(string: url)! ).path() )
@@ -169,45 +169,45 @@ func downloadZipUnPacked(url: URL, dst: Path) async throws -> Path {
 
 
 
-public class SiteFilesDownload {
-	enum SiteFolders: String {
-		case kivy = "site-packages"
-		case numpy = "numpy-site"
-	}
-	let target: SiteFolders
-	let working_dir: Path
-	let temp_dir: Path
-	
-	
-	init(target: SiteFolders, working_dir: Path) throws {
-		self.target = target
-		self.working_dir = working_dir
-		self.temp_dir = try .processUniqueTemporary()
-	}
-	func downloadDistLink() async throws -> URL? {
-		switch target {
-		case .kivy:
-			let kivy_release = try await loadGithub(owner: "PythonSwiftLink", repo: "KivyCore")
-			if let release = kivy_release.releases.first, let dist = release.assets.first(where: {$0.name == "kivy_dist.zip"}) {
-				return .init(string: dist.browser_download_url)
-			}
-		case .numpy:
-			let kivy_release = try await loadGithub(owner: "PythonSwiftLink", repo: "KivyNumpy")
-			if let release = kivy_release.releases.first, let dist = release.assets.first(where: {$0.name == "numpy_dist.zip"}) {
-				return .init(string: dist.browser_download_url)
-			}
-			
-		}
-		return nil
-	}
-	
-	
-	
-}
+//public class SiteFilesDownload {
+//	enum SiteFolders: String {
+//		case kivy = "site-packages"
+//		case numpy = "numpy-site"
+//	}
+//	let target: SiteFolders
+//	let working_dir: Path
+//	let temp_dir: Path
+//	
+//	
+//	init(target: SiteFolders, working_dir: Path) throws {
+//		self.target = target
+//		self.working_dir = working_dir
+//		self.temp_dir = try .processUniqueTemporary()
+//	}
+//	func downloadDistLink() async throws -> URL? {
+//		switch target {
+//		case .kivy:
+//			let kivy_release = try await loadGithub(owner: "PythonSwiftLink", repo: "KivyCore")
+//			if let release = kivy_release.releases.first, let dist = release.assets.first(where: {$0.name == "kivy_dist.zip"}) {
+//				return .init(string: dist.browser_download_url)
+//			}
+//		case .numpy:
+//			let kivy_release = try await loadGithub(owner: "PythonSwiftLink", repo: "KivyNumpy")
+//			if let release = kivy_release.releases.first, let dist = release.assets.first(where: {$0.name == "numpy_dist.zip"}) {
+//				return .init(string: dist.browser_download_url)
+//			}
+//			
+//		}
+//		return nil
+//	}
+//	
+//	
+//	
+//}
 
-extension String {
-	var kivy_extra_name: recipeKeys? { .init(rawValue: self) }
-}
+//extension String {
+//	var kivy_extra_name: recipeKeys? { .init(rawValue: self) }
+//}
 
 extension Array where Element == String {
 	

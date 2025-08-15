@@ -10,6 +10,7 @@ import XCAssetsProcessor
 import TOMLKit
 import SwiftCPUDetect
 import PSBackend
+import PSTools
 
 import PySwiftKit
 import PyComparable

@@ -75,7 +75,8 @@ let package = Package(
                 .byName(name: "SwiftCPUDetect"),
                 .product(name: "Algorithms", package: "swift-algorithms"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .byName(name: "PSBackend")
+                .byName(name: "PSBackend"),
+                "PSTools"
 				//.product(name: "RecipeBuilder", package: "SwiftPackageGen")
 			],
 			resources: [
@@ -85,6 +86,20 @@ let package = Package(
 			]
 			
 			),
+        .target(
+            name: "PSTools",
+            dependencies: [
+                .product(name: "SwiftSyntax", package: "swift-syntax"),
+                .product(name: "SwiftParser", package: "swift-syntax"),
+                .product(name: "SwiftonizeModules", package: "PySwiftKit"),
+                .byName(name: "TOMLKit"),
+                .product(name: "INIParser", package: "perfect-iniparser"),
+                .byName(name: "SwiftCPUDetect"),
+                .product(name: "Algorithms", package: "swift-algorithms"),
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .byName(name: "PSBackend")
+            ]
+        ),
 //		.executableTarget(
 //			name: "PythonSwiftProjectGUI",
 //			dependencies: [
@@ -103,7 +118,8 @@ let package = Package(
                 "PSProjectUpdate",
 				//.product(name: "Gzip", package: "GzipSwift"),
 				.product(name: "Zip", package: "Zip"),
-                .byName(name: "PSBackend")
+                .byName(name: "PSBackend"),
+                "PSTools"
 				//.product(name: "GeneratePackage", package: "SwiftPackageGen"),
 				//.product(name: "RecipeBuilder", package: "SwiftPackageGen")
             ]

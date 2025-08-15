@@ -7,7 +7,7 @@
 
 import PathKit
 import Foundation
-
+import PSTools
 
 
 public protocol ArchProtocol {
@@ -285,6 +285,6 @@ extension PlatformContext {
 
 extension PlatformContext where SDK == SDKS.MacOS {
     public func pipInstall(requirements: Path) async throws {
-        print(PSProjectGen.pipInstall(requirements, site_path: getSiteFolder()))
+        print(PSTools.pipInstall(requirements, site_path: getSiteFolder()))
     }
 }
