@@ -44,7 +44,7 @@ extension PyProjectToml {
             public let platforms: [BWProject.PlatformType]
             
             private var _loaded_backends: [PSBackend] = []
-            func loaded_backends() async throws -> [PSBackend] {
+            public func loaded_backends() async throws -> [PSBackend] {
                 if _loaded_backends.isEmpty {
                     _loaded_backends = try await get_backends()
                 }
@@ -53,19 +53,9 @@ extension PyProjectToml {
             
             private func get_backends() async throws -> [PSBackend] {
                 let backends_root = Path.ps_shared + "backends"
-                let pyswift_backends = backends_root + "PySwiftBackends/src/pyswiftbackends"
                 
-                return try (backends ?? []).compactMap { backend in
-                    if backend.contains(".") {
-                        try PyBackendLoader.load_backend(
-                            external: backend
-                        )
-                    } else {
-                        try PyBackendLoader.load_backend(
-                            name: backend
-                        )
-                    }
-                }
+                return try (backends ?? []).compactMap { try .load(name: $0, path: backends_root) }
+                
             }
             
             private enum CodingKeys: CodingKey {
