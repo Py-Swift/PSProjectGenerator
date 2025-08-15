@@ -12,17 +12,8 @@ import SwiftParser
 import SwiftSyntaxBuilder
 
 private func addPythonSwiftImport(_ import_name: String, _ module_name: String) -> ExprSyntax {
-//	let memberAccessExpr = MemberAccessExprSyntax(dot: .periodToken(), name: .identifier("init"))
-//	let tuple: TupleExprElementList =  .init([
-//		.init(label: .identifier("name"), expression: IdentifierExprSyntax(stringLiteral: "corebluetooth")),
-//		.init(label: "name", expression: .init(stringLiteral: "PyInit_corebluetooth"))
-//	])
-	//return FunctionCallExprSyntax(calledExpression: memberAccessExpr, argumentList: tuple)
     return .init(ExprSyntax(stringLiteral: ".init(name: \"\(import_name)\", module: \(module_name).py_init)"))
         .with(\.leadingTrivia ,.newline + .tab)
-	return .init(ExprSyntax(stringLiteral: ".init(name: \"\(module_name)\", module: PyInit_\(module_name))"))
-		.with(\.leadingTrivia ,.newline + .tab)
-//	fatalError()
 }
 
 private func add_PySwiftImport(name: String) -> ExprSyntax {

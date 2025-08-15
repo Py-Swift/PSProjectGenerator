@@ -166,7 +166,7 @@ public enum PyTools {
     public static func pipInstall(pip: String, _ args: String...) -> Int32 {
         let task = Process()
         
-        var arguments = [
+        let arguments = [
             "install",
             pip
         ] + args

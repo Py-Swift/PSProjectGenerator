@@ -232,16 +232,7 @@ public class BWProject: PSProjectProtocol {
 		return output
 	}
     
-	var site_folders: [Path] {
-		
-		var output: [Path] = [ ]
-//		let numpySite = resourcesPath + "numpy-site"
-//		if numpySite.exists {
-//			output.append(numpySite)
-//		}
-		
-		return output
-	}
+
 	
 	public func configs() async throws -> [ProjectSpec.Config] {
 		[.init(name: "Debug", type: .debug),.init(name: "Release", type: .release)]
@@ -366,10 +357,7 @@ public class BWProject: PSProjectProtocol {
     
     
     private func createRootFolders() async throws {
-        let projDir = workingDir
         
-        
-        //try? (current + "wrapper_sources").mkdir()
         try? (workingDir + "app").mkpath()
         let support = workingDir + "Support"
         try? support.mkpath()
@@ -430,7 +418,7 @@ public class BWProject: PSProjectProtocol {
         
         
         for (target, plats) in platforms {
-            let targ_path = target.targetPath(workingDir)
+            //let targ_path = target.targetPath(workingDir)
             
             if let resourcesPath = plats.first?.getResourcesFolder() {
                 switch target {
@@ -467,7 +455,7 @@ public class BWProject: PSProjectProtocol {
     }
     
     private func copyPythonLibs() async throws {
-        for (target, platforms) in platforms {
+        for (target, _) in platforms {
             switch target {
             case .iphoneos:
                 let support = workingDir + "Support"

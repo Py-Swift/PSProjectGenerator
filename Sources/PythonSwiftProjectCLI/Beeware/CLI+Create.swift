@@ -76,7 +76,7 @@ extension PythonSwiftProjectCLI {
                 //var spec_file = spec_file
                 //print(platform)
                 print(try await Path.ios_python())
-                guard let app_path = getAppLocation()?.parent() else { fatalError("App Folder not found")}
+                //guard let app_path = getAppLocation()?.parent() else { fatalError("App Folder not found")}
                 
                 var src: Path? = python_src
                 let current = Path.current

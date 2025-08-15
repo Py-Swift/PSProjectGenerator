@@ -80,7 +80,7 @@ let package = Package(
 				//.product(name: "RecipeBuilder", package: "SwiftPackageGen")
 			],
 			resources: [
-				.copy("downloads.yml"),
+				//.copy("downloads.yml"),
 				.copy("project_plist_keys.yml"),
                 .copy("kivy_requirements.txt")
 			]

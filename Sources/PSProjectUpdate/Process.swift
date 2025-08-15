@@ -83,7 +83,7 @@ func which_pip3() throws -> Path {
     
     guard
         let data = try? pipe.fileHandleForReading.readToEnd(),
-        var path = String(data: data, encoding: .utf8)
+        let path = String(data: data, encoding: .utf8)
     else { fatalError() }
     return .init(path.strip())
 }

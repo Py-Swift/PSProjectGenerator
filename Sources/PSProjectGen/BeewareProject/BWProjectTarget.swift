@@ -121,7 +121,7 @@ public class BWProjectTarget: PSProjTargetProtocol {
     
 	
 	public func projSettings() async throws -> ProjectSpec.Settings {
-		var configDict: [String: Any] = [
+		let configDict: [String: Any] = [
 			"LIBRARY_SEARCH_PATHS": [
 				"$(inherited)",
             ],

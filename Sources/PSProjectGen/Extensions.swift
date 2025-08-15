@@ -55,7 +55,7 @@ func which_python() throws -> Path {
     let pipe = Pipe()
     
     proc.standardOutput = pipe
-    var env = ProcessInfo.processInfo.environment
+    let env = ProcessInfo.processInfo.environment
     //env["PATH"]?.extendedPath()
     proc.environment = env
     

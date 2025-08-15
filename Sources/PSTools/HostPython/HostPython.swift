@@ -8,7 +8,7 @@
 import Foundation
 
 import PathKit
-import PSTools
+
 
 public extension URL {
 	static let ZSH = URL(filePath: "/bin/zsh")

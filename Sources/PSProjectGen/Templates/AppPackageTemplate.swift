@@ -88,7 +88,7 @@ public class AppPackageTemplate {
         let package_file = root_path + "Package.swift"
         let sources = root_path + "Sources"
         let target_path = sources + name
-        let site_packages = target_path + "site-packages"
+        //let site_packages = target_path + "site-packages"
         let target_file = target_path + "\(name).swift"
         
         

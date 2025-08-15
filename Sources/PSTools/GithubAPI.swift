@@ -42,21 +42,6 @@ public struct GithubAPI {
 	public mutating func handleReleases() async throws {
 		let releasesData: Data = try await download(url: releasesURL)
 		releases = try JSONDecoder().decode([Release].self, from: releasesData)
-//		let releases = try JSONSerialization.jsonObject(with: releasesData) as! [[String: Any]]
-		if let release = releases.first {
-			
-//			debugPrint(release.keys)
-//			debugPrint(release["tag_name"]!)
-//			let assets = release["assets"] as! [[String: Any]]
-//			debugPrint(assets.compactMap({$0["name"]}))
-//			debugPrint(assets.compactMap({$0["browser_download_url"]}))
-//			if let first_asset = assets.first {
-//				debugPrint(first_asset.keys)
-//			}
-//			for asset in release.assets {
-//				print(asset.name, asset.browser_download_url)
-//			}
-		}
 		
 	}
 	

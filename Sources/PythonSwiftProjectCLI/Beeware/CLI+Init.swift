@@ -22,7 +22,7 @@ extension PythonSwiftProjectCLI {
             let buildozer_app = btoml?["buildozer-app"]?.table
             
             UVTool.Init(path: path.string, name: name ?? buildozer_app?["package"]?["name"]?.string)
-            let name = name ?? path.lastComponent
+            //let name = name ?? path.lastComponent
             let pyproject = path + "pyproject.toml"
             var pyproject_text = try pyproject.read(.utf8)
             
