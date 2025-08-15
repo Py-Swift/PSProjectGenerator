@@ -111,6 +111,8 @@ public protocol ContextProtocol {
     func createResourcesFolder(forced: Bool) async throws
     
     func pipInstall(requirements: Path) async throws
+    
+    func validatePips(requirements: Path) async throws -> Int32
 }
 
 extension ContextProtocol {
@@ -230,6 +232,31 @@ public extension PlatformContext {
 
 
 extension PlatformContext {
+    
+    public func validatePips(requirements: Path) async throws -> Int32 {
+        print(wheel_platform)
+        let task = Process()
+        
+        task.arguments = [
+            "install",
+            "--disable-pip-version-check",
+            "--platform=\(wheel_platform)",
+            "--only-binary=:all:",
+            "--extra-index-url",
+            "https://pypi.anaconda.org/beeware/simple",
+            "--extra-index-url",
+            "https://pypi.anaconda.org/pyswift/simple",
+            "--target", getSiteFolder().string,
+            "-r", requirements.string,
+            "--dry-run"
+        ]
+        task.executablePath = pip3
+        task.standardInput = nil
+        task.launch()
+        task.waitUntilExit()
+        return task.terminationStatus
+    }
+    
     public func pipInstall(requirements: Path) async throws {
         print(getSiteFolder(), wheel_platform)
         let task = Process()

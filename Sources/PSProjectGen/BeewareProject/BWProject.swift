@@ -497,9 +497,8 @@ public class BWProject: PSProjectProtocol {
     private static func generateReqFromUV(toml: PyProjectToml, uv: Path) async throws -> String {
         var req_String = UVTool.export_requirements(uv_root: uv, group: "iphoneos")
         
-        
-            let ios_pips = (toml.pyswift.project?.dependencies?.pips ?? []).joined(separator: "\n")
-            req_String = "\(req_String)\n\(ios_pips)"
+        let ios_pips = (toml.pyswift.project?.dependencies?.pips ?? []).joined(separator: "\n")
+        req_String = "\(req_String)\n\(ios_pips)"
         
         print(req_String)
         return req_String
