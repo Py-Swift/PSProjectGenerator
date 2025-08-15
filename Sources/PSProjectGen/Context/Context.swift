@@ -113,6 +113,8 @@ public protocol ContextProtocol {
     func pipInstall(requirements: Path) async throws
     
     func validatePips(requirements: Path) async throws -> Int32
+    
+    
 }
 
 extension ContextProtocol {
@@ -220,7 +222,7 @@ public extension PlatformContext {
         return root + sdk.xcode_target
     }
     
-    public func getSourcesFolder() -> Path {
+    func getSourcesFolder() -> Path {
         getTargetFolder() + "Sources"
     }
 }

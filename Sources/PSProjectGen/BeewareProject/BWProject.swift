@@ -490,6 +490,11 @@ public class BWProject: PSProjectProtocol {
         for (_, plats) in platforms {
             for platform in plats {
                 try await platform.pipInstall(requirements: req_file)
+                
+                let site_path = FilePath(value: platform.getSiteFolder())
+                for backend in backends {
+                    try await backend.copy_to_site_packages(site_path: site_path)
+                }
             }
         }
     }
@@ -510,9 +515,12 @@ public class BWProject: PSProjectProtocol {
         let req_string = try! await Self.generateReqFromUV(toml: toml, uv: uv)
         let req_file = workingDir + "requirements.txt"
         try req_file.write(req_string)
-        for (target, plats) in platforms {
+        for (_, plats) in platforms {
             for platform in plats {
+                
                 try await platform.pipInstall(requirements: req_file)
+                fatalError()
+                
             }
         }
 //        if let uv, let pyProjectToml {

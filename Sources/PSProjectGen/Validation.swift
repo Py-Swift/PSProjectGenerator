@@ -53,8 +53,6 @@ public enum Validation {
         let __init__ = backends + "__init__.py"
         if !__init__.exists { try __init__.write("") }
         
-        PyTools.pipInstall(pip: "pip", "-t", backends.string)
-        PyTools.pipInstall(pip: "requests", "-t", backends.string)
         PyTools.pipInstall(pip: "git+https://github.com/Py-Swift/PySwiftBackends", "-t", backends.string)
         
     }

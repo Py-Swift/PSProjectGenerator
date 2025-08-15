@@ -123,7 +123,7 @@ extension PythonSwiftProjectCLI.Wheels {
             let req_file = workingDir + "requirements.txt"
             try req_file.write(req_string)
             
-            for platform in platforms.reversed() {
+            for platform in platforms {
                 let status = try await platform.validatePips(requirements: req_file)
                 if status != 0 {
                     print("\n####################################################################################################")
