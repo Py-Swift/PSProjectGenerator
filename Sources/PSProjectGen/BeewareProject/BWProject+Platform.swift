@@ -7,13 +7,12 @@
 
 import PathKit
 import Foundation
+import PSTools
+
 
 public extension BWProject {
     
-    enum PlatformType: String, Decodable {
-        case iphoneos
-        case macos
-    }
+    
     
     final class Platform {
         var arch: Arch

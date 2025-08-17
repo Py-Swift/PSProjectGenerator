@@ -4,7 +4,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "PythonSwiftProject",
+    name: "PSProjectGenerator",
 	platforms: [.macOS(.v13)],
 	products: [
 		.executable(name: "PSProjectCLI", targets: ["PythonSwiftProjectCLI"]),

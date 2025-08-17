@@ -28,6 +28,6 @@ struct PreviewTest: PreviewProvider {
 	
 	
 }
-//#Preview {
-//    ContentView()
-//}
+#Preview {
+    ContentView()
+}

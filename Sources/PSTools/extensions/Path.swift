@@ -24,3 +24,16 @@ public extension Path {
         lastComponentWithoutExtension.replacingOccurrences(of: " ", with: "\\ ")
     }
 }
+
+
+extension Path {
+    public static func withTemporaryFolder(_ handle: @escaping (Path) throws ->Void) throws {
+        let tmp = try Path.uniqueTemporary()
+        try tmp.mkpath()
+        defer { try? tmp.delete() }
+        try tmp.chdir {
+            try handle(tmp)
+        }
+        
+    }
+}

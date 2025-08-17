@@ -473,7 +473,7 @@ public class BWProject: PSProjectProtocol {
     }
     
     private func pipInstallRequirements() async throws {
-        let req_string = try! await Self.generateReqFromUV(toml: toml, uv: uv)
+        let req_string = try! await generateReqFromUV(toml: toml, uv: uv, backends: backends)
         let req_file = workingDir + "requirements.txt"
         try req_file.write(req_string)
         for (_, plats) in platforms {
@@ -482,26 +482,36 @@ public class BWProject: PSProjectProtocol {
                 
                 let site_path = FilePath(value: platform.getSiteFolder())
                 for backend in backends {
-                    try await backend.copy_to_site_packages(site_path: site_path)
+                    try await backend.copy_to_site_packages(site_path: site_path, platform: platform.wheel_platform)
                 }
             }
         }
     }
-	
-    private static func generateReqFromUV(toml: PyProjectToml, uv: Path) async throws -> String {
-        var req_String = UVTool.export_requirements(uv_root: uv, group: "iphoneos")
+    @discardableResult
+    private static func copyAndModifyUVProject(_ uv: Path, excludes: [String]) throws -> Path {
+        let new = Path.current
+        let pyproject = uv + "pyproject.toml"
+        let py_new = new + "pyproject.toml"
         
-        let ios_pips = (toml.pyswift.project?.dependencies?.pips ?? []).joined(separator: "\n")
-        req_String = "\(req_String)\n\(ios_pips)"
+        let modded = try TOMLTable(string: try pyproject.read())
+        var deps = modded["project"]?["dependencies"]?.array ?? []
+        for ext in excludes {
+            deps.removeAll(where: { dep in
+                dep.string?.hasPrefix(ext) ?? false
+            })
+        }
+        modded["project"]?["dependencies"] = deps.tomlValue
         
-        print(req_String)
-        return req_String
+        try py_new.write(modded.convert())
+        return new
     }
+	
+    
     
 	private func postStructure() async throws {
 		let current = workingDir
         
-        let req_string = try! await Self.generateReqFromUV(toml: toml, uv: uv)
+        let req_string = try! await generateReqFromUV(toml: toml, uv: uv, backends: backends)
         let req_file = workingDir + "requirements.txt"
         try req_file.write(req_string)
         for (_, plats) in platforms {
@@ -771,22 +781,40 @@ func temp_main_file(backends: [PSBackend]) throws -> String {
             imp.modules.map(\.description)
         }
     }
-    let pre_lines = try backends.compactMap { backend in
-        try backend.pre_main_swift(libraries: imports, modules: modules)
-    }
-    let post_lines = try backends.compactMap { backend in
-        try backend.main_swift(libraries: imports, modules: modules)
-    }
+    
+    let imports_block = imports.map({"import \($0)"}).joined(separator: "\n")
+    
+    let main_blocks = try backends.flatMap { backend in
+        guard try backend.will_modify_main_swift() else { return  [CodeBlock]() }
+        return try backend.modify_main_swift(libraries: imports, modules: modules)
+    }.chunked(on: \.priority).sorted(by: {$0.0 < $1.0})
+    
+    
+    
+    let main_code = main_blocks.flatMap( { priority, blocks in
+        var output = [String]()
+        output.append("// \(priority.rawValue) - \(priority)")
+        for block in blocks {
+            output.append(block.code)
+        }
+        
+        return output
+    } ).joined(separator: "\n")
+    
+//    let pre_lines = try backends.compactMap { backend in
+//        "try backend.pre_main_swift(libraries: imports, modules: modules)"
+//    }
+//    let post_lines = try backends.compactMap { backend in
+//        "try backend.main_swift(libraries: imports, modules: modules)"
+//    }
     //let imports = wrapper_importers.flatMap({$0.libraries.map(\.description)})
     //let modules = wrapper_importers.flatMap({$0.modules.map(\.description)})
     return """
     import Foundation
     import PySwiftObject
-    \(imports.joined(separator: "\n"))
-
-    \(pre_lines.joined(separator: "\n"))
+    \(imports_block)
     
-    \(post_lines.joined(separator: "\n"))
+    \(main_code)
     """
 }
 

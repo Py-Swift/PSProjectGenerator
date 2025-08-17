@@ -2,6 +2,66 @@
 //  PSTools.swift
 //  PythonSwiftProject
 //
-//  Created by CodeBuilder on 15/08/2025.
-//
 
+import PathKit
+import TOMLKit
+import PSBackend
+
+public func generateReqFromUV(toml: PyProjectToml, uv: Path, backends: [PSBackend]) async throws -> String {
+    var excludes = toml.pyswift.project?.exclude_dependencies ?? []
+    excludes.append(contentsOf: try backends.flatMap({ backend in
+        try backend.exclude_dependencies()
+    }))
+    if !excludes.isEmpty {
+        var reqs = [String]()
+        let uv_abs = uv.absolute()
+        try Path.withTemporaryFolder { tmp in
+            // loads, modifies and save result as pyproject.toml in temp folder
+            // and temp folder now mimics an uv project directory
+            try copyAndModifyUVProject(uv_abs, excludes: excludes)
+            reqs.append(
+                UVTool.export_requirements(uv_root: tmp, group: "iphoneos")
+            )
+            if let ios_pips = toml.pyswift.project?.dependencies?.pips {
+                reqs.append(contentsOf: ios_pips)
+            }
+        }
+        
+        let req_txt = reqs.joined(separator: "\n")
+        print(req_txt)
+        return req_txt
+    } else {
+        // excludes not defined or empty go on like normal
+        var reqs = [String]()
+        reqs.append(
+            UVTool.export_requirements(uv_root: uv, group: "iphoneos")
+        )
+        if let ios_pips = toml.pyswift.project?.dependencies?.pips {
+            reqs.append(contentsOf: ios_pips)
+        }
+                    
+        let req_txt = reqs.joined(separator: "\n")
+        print(req_txt)
+        return req_txt
+    }
+    
+}
+
+@discardableResult
+public func copyAndModifyUVProject(_ uv: Path, excludes: [String]) throws -> Path {
+    let new = Path.current
+    let pyproject = uv + "pyproject.toml"
+    let py_new = new + "pyproject.toml"
+    
+    let modded = try TOMLTable(string: try pyproject.read())
+    var deps = modded["project"]?["dependencies"]?.array ?? []
+    for ext in excludes {
+        deps.removeAll(where: { dep in
+            dep.string?.hasPrefix(ext) ?? false
+        })
+    }
+    modded["project"]?["dependencies"] = deps.tomlValue
+    
+    try py_new.write(modded.convert())
+    return new
+}

@@ -49,6 +49,8 @@ extension PythonSwiftProjectCLI.Backends {
 extension PythonSwiftProjectCLI.Backends {
     struct Update: AsyncParsableCommand {
         
+        @Argument var url: String?
+        
         func run() async throws {
             
             if !Validation.hostPython() { return }

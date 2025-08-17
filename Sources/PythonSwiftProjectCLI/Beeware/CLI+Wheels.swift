@@ -120,7 +120,12 @@ extension PythonSwiftProjectCLI.Wheels {
                 return plats
             }()
             
-            let req_string = try! await Self.generateReqFromUV(toml: toml, uv: uv)
+            let req_string = try! await generateReqFromUV(
+                toml: toml,
+                uv: uv,
+                backends: try await pyswift_project?.loaded_backends() ?? []
+            )
+            
             let req_file = workingDir + "requirements.txt"
             try req_file.write(req_string)
             
@@ -140,14 +145,44 @@ extension PythonSwiftProjectCLI.Wheels {
             
         }
         
-        private static func generateReqFromUV(toml: PyProjectToml, uv: Path) async throws -> String {
-            var req_String = UVTool.export_requirements(uv_root: uv, group: "iphoneos")
-            
-            let ios_pips = (toml.pyswift.project?.dependencies?.pips ?? []).joined(separator: "\n")
-            req_String = "\(req_String)\n\(ios_pips)"
-            
-            print(req_String)
-            return req_String
-        }
+//        private static func generateReqFromUV(toml: PyProjectToml, uv: Path, backends: [PSBackend]) async throws -> String {
+//            var excludes = toml.pyswift.project?.exclude_dependencies ?? []
+//            excludes.append(contentsOf: try backends.flatMap({ backend in
+//                try backend.exclude_dependencies()
+//            }))
+//            if !excludes.isEmpty {
+//                var reqs = [String]()
+//                let uv_abs = uv.absolute()
+//                try Path.withTemporaryFolder { tmp in
+//                    // loads, modifies and save result as pyproject.toml in temp folder
+//                    // and temp folder now mimics an uv project directory
+//                    try copyAndModifyUVProject(uv_abs, excludes: excludes)
+//                    reqs.append(
+//                        UVTool.export_requirements(uv_root: tmp, group: "iphoneos")
+//                    )
+//                    if let ios_pips = toml.pyswift.project?.dependencies?.pips {
+//                        reqs.append(contentsOf: ios_pips)
+//                    }
+//                }
+//                
+//                let req_txt = reqs.joined(separator: "\n")
+//                print(req_txt)
+//                return req_txt
+//            } else {
+//                // excludes not defined or empty go on like normal
+//                var reqs = [String]()
+//                reqs.append(
+//                    UVTool.export_requirements(uv_root: uv, group: "iphoneos")
+//                )
+//                if let ios_pips = toml.pyswift.project?.dependencies?.pips {
+//                    reqs.append(contentsOf: ios_pips)
+//                }
+//                            
+//                let req_txt = reqs.joined(separator: "\n")
+//                print(req_txt)
+//                return req_txt
+//            }
+//            
+//        }
     }
 }

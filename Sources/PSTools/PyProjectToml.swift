@@ -9,14 +9,18 @@ import PathKit
 import PSBackend
 import PySwiftKit
 import PySwiftWrapper
-import PSTools
+
+public enum PlatformType: String, Codable {
+    case iphoneos
+    case macos
+}
 
 public struct PyProjectToml: Decodable {
     
     public let project: PyProject?
     public let pyswift: PySwift
     public let dependency_groups: [String: [String]]?
-    let tool: Tool?
+    public let tool: Tool?
     
     enum CodingKeys: String, CodingKey {
         case project
@@ -41,7 +45,11 @@ extension PyProjectToml {
             public let pip_install_app: Bool?
             public let backends: [String]?
             public let dependencies: Dependencies?
-            public let platforms: [BWProject.PlatformType]
+            public let platforms: [PlatformType]
+            
+            public let exclude_dependencies: [String]?
+            
+            
             
             private var _loaded_backends: [PSBackend] = []
             public func loaded_backends() async throws -> [PSBackend] {
@@ -67,6 +75,7 @@ extension PyProjectToml {
                 case backends
                 case dependencies
                 case platforms
+                case exclude_dependencies
             }
             
             public init(from decoder: any Decoder) throws {
@@ -79,8 +88,8 @@ extension PyProjectToml {
                 self.pip_install_app = try container.decodeIfPresent(Bool.self, forKey: PyProjectToml.PySwift.Project.CodingKeys.pip_install_app)
                 self.backends = try container.decodeIfPresent([String].self, forKey: PyProjectToml.PySwift.Project.CodingKeys.backends)
                 self.dependencies = try container.decodeIfPresent(PyProjectToml.PySwift.Project.Dependencies.self, forKey: PyProjectToml.PySwift.Project.CodingKeys.dependencies)
-                self.platforms = try container.decode([BWProject.PlatformType].self, forKey: PyProjectToml.PySwift.Project.CodingKeys.platforms)
-                
+                self.platforms = try container.decode([PlatformType].self, forKey: PyProjectToml.PySwift.Project.CodingKeys.platforms)
+                self.exclude_dependencies = try container.decodeIfPresent([String].self, forKey: .exclude_dependencies)
             }
         }
     }
@@ -89,14 +98,14 @@ extension PyProjectToml {
         public let name: String?
     }
     
-    struct Tool: Decodable {
-        let uv: UV?
+    public struct Tool: Decodable {
+        public let uv: UV?
         
-        struct UV: Decodable {
+        public struct UV: Decodable {
             
-            let sources: Sources?
+            public let sources: Sources?
             
-            struct Sources: Decodable {
+            public struct Sources: Decodable {
                 
             }
         }

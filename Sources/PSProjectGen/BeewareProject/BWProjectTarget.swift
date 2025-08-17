@@ -11,6 +11,7 @@ import PSBackend
 import PySwiftKit
 import PyTypes
 import PyComparable
+import PSTools
 
 extension Dictionary where Key == String, Value == Any {
     mutating func merge(pyDict: [String: PyPointer]) throws {
