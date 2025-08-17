@@ -262,7 +262,7 @@ public class BWProjectTarget: PSProjTargetProtocol {
         switch target_type {
         case .iphoneos:
             if
-                let psp_bundle = Bundle(path: (app_path + "PythonSwiftProject_PSProjectGen.bundle").string ),
+                let psp_bundle = Bundle(path: (app_path + "PSProjectGenerator_PSProjectGen.bundle").string ),
                 let _project_plist_keys = psp_bundle.path(forResource: "project_plist_keys", ofType: "yml")
             {
                 try loadBasePlistKeys(from: .init(filePath: _project_plist_keys), keys: &mainkeys)
