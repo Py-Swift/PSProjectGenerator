@@ -65,7 +65,18 @@ extension PythonSwiftProjectCLI.Backends {
             let __init__ = backends + "__init__.py"
             if !__init__.exists { try __init__.write("") }
             
-            PyTools.pipInstall(pip: "git+https://github.com/Py-Swift/PySwiftBackends", "-U", "-t", backends.string)
+            let official_backends = [
+                
+                "https://github.com/Py-Swift/PySwiftBackends",
+                "https://github.com/kivy-school/pyswift-backends"
+                
+            ].map({"git+\($0)"})
+            
+            for backend in official_backends {
+                PyTools.pipInstall(pip: backend, "-U", "-t", backends.string)
+            }
+            
+            //PyTools.pipInstall(pip: "git+https://github.com/Py-Swift/PySwiftBackends", "-U", "-t", backends.string)
         }
         
     }

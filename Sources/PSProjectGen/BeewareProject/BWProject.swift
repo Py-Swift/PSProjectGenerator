@@ -156,7 +156,7 @@ public class BWProject: PSProjectProtocol {
         single_target = true
         local_py_src = false
         py_src = if uv.isRelative, let name = toml.project?.name {
-            .init("$(dirname $PROJECT_DIR)/\(uv.lastComponent)/src/\(name)")
+            .init("$(dirname $PROJECT_DIR)/\(uv.lastComponent)/src/\(name.replacing(try Regex("[ -]"), with: "_"))")
         } else {
             workingDir + "app"
         }

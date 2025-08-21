@@ -53,8 +53,15 @@ extension PythonSwiftProjectCLI {
             let req_file = workingDir + "requirements.txt"
             try req_file.write(req_string)
             
+            let backends = try await pyswift_project?.loaded_backends() ?? []
+            
             for platform in platforms {
                 try await platform.pipInstall(requirements: req_file)
+                
+                let site_path = platform.getSiteFolder()
+                for backend in backends {
+                    try await backend.copy_to_site_packages(site_path: .init(value: site_path), platform: platform.wheel_platform)
+                }
             }
             
         }
