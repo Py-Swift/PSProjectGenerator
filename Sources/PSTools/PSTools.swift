@@ -54,11 +54,32 @@ public func copyAndModifyUVProject(_ uv: Path, excludes: [String]) throws -> Pat
     let py_new = new + "pyproject.toml"
     
     let modded = try TOMLTable(string: try pyproject.read())
-    var deps = modded["project"]?["dependencies"]?.array ?? []
+    var deps = (modded["project"]?["dependencies"]?.array ?? []).compactMap(\.string)
     for ext in excludes {
-        deps.removeAll(where: { dep in
-            dep.string?.hasPrefix(ext) ?? false
-        })
+        switch ext {
+        case "kivy":
+            deps.removeAll(where: { dep in
+                if let dep = dep.string {
+                    switch dep {
+                    case let reloader where reloader.hasPrefix("kivy-reloader"):
+                        false
+                    default:
+                        dep.hasPrefix(ext)
+                    }
+                } else {
+                    false
+                }
+            })
+        default:
+            deps.removeAll(where: { dep in
+                if let dep = dep.string {
+                    dep.hasPrefix(ext)
+                } else {
+                    false
+                }
+            })
+        }
+        
     }
     modded["project"]?["dependencies"] = deps.tomlValue
     

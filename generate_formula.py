@@ -24,7 +24,7 @@ class Psproject < Formula
 
   def install
     bin.install "PSProject"
-    bin.install "PythonSwiftProject_PSProjectGen.bundle"
+    bin.install "PSProjectGenerator_PSProjectGen.bundle"
     bin.install "Python.framework"
     end
 
@@ -47,7 +47,7 @@ class Psproject{version_name} < Formula
 
   def install
     bin.install "PSProject"
-    bin.install "PythonSwiftProject_PSProjectGen.bundle"
+    bin.install "PSProjectGenerator_PSProjectGen.bundle"
     bin.install "Python.framework"
     end
 

@@ -204,7 +204,8 @@ public class UVTool {
         let task = Process()
         var arguments: [String] = [
             "init",
-            "--lib", path
+            "--lib", path,
+            "--python", "3.11.11"
         ]
         if let name {
             arguments.append(contentsOf: ["--name", name])
