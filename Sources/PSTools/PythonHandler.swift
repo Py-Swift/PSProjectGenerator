@@ -150,7 +150,7 @@ public func launchPython() throws {
     //try PythonFiles.checkModule()
     if !python.defaultRunning {
         python.start(
-            stdlib: "/Users/Shared/psproject/hostpython3/lib/python3.11",
+            stdlib: "/Users/Shared/psproject/hostpython3/lib/python3.13",
             app_packages: [
                 "/Users/Shared/psproject/backends"
             ],

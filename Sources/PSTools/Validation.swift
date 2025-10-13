@@ -26,7 +26,7 @@ public enum Validation {
         }
         print("""
         could not locate <\(Path.hostPython)>
-        hostoython3 is not installed
+        hostpython3 is not installed
         run:
         
             psproject host-python

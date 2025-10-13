@@ -36,7 +36,8 @@ let package = Package(
 		//.package(path: "/Volumes/CodeSSD/XcodeGithub/SwiftPackageGen")
         //.package(path: "/Volumes/CodeSSD/beeware_env/test_projects/github/PSBackend")
         .package(url: "https://github.com/Py-Swift/PSBackend", branch: "master"),
-        .package(path: "./SetVersion")
+        .package(path: "./SetVersion"),
+        .package(path: "/Volumes/CodeSSD/PythonSwiftGithub/WheelBuilder")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -76,7 +77,8 @@ let package = Package(
                 .product(name: "Algorithms", package: "swift-algorithms"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .byName(name: "PSBackend"),
-                "PSTools"
+                "PSTools",
+                .product(name: "WheelBuilder", package: "WheelBuilder")
 				//.product(name: "RecipeBuilder", package: "SwiftPackageGen")
 			],
 			resources: [
@@ -119,7 +121,9 @@ let package = Package(
 				//.product(name: "Gzip", package: "GzipSwift"),
 				.product(name: "Zip", package: "Zip"),
                 .byName(name: "PSBackend"),
-                "PSTools"
+                "PSTools",
+                .product(name: "WheelBuilder", package: "WheelBuilder"),
+                .product(name: "PipRepo", package: "WheelBuilder")
 				//.product(name: "GeneratePackage", package: "SwiftPackageGen"),
 				//.product(name: "RecipeBuilder", package: "SwiftPackageGen")
             ]

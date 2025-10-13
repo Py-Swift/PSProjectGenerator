@@ -20,7 +20,7 @@ extension PythonSwiftProjectCLI {
             print(app_dir)
             if !app_dir.exists { try! app_dir.mkpath() }
             
-            try await buildHostPython(version: "3.11.11", path: app_dir)
+            try await buildHostPython(version: "3.13.8", path: app_dir)
             InstallPythonCert(python: (app_dir + "hostpython3/bin/python3").url)
         }
     }

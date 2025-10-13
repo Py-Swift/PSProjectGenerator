@@ -1,19 +1,21 @@
 //
-//  CLI+Update.swift
-//  PythonSwiftProject
+//  Cache.swift
+//  PSProjectGenerator
 //
-import Foundation
-import PathKit
-import ArgumentParser
-import PSProjectGen
-import TOMLKit
-import MachO
-import SwiftCPUDetect
-import PSTools
 
-extension PythonSwiftProjectCLI {
+import Foundation
+import ArgumentParser
+import PathKit
+import PSProjectGen
+import Zip
+import TOMLKit
+import PSTools
+import PipRepo
+
+extension PythonSwiftProjectCLI.Wheels {
     
-    struct Update: AsyncParsableCommand {
+    struct Cache: AsyncParsableCommand {
+        
         @Argument var uv: Path
         
         func run() async throws {
@@ -22,9 +24,10 @@ extension PythonSwiftProjectCLI {
             try Validation.backends()
             
             try launchPython()
-            
-            let toml_path = (uv.absolute() + "pyproject.toml")
+            let uv_abs = uv.absolute()
+            let toml_path = (uv_abs + "pyproject.toml")
             let toml = try TOMLDecoder().decode(PyProjectToml.self, from: try (toml_path).read())
+            toml.root = uv
             let pyswift_project = toml.pyswift.project
             guard let folderName = pyswift_project?.folder_name else { return }
             let workingDir = (uv.parent()) + folderName
@@ -53,25 +56,28 @@ extension PythonSwiftProjectCLI {
             let req_file = workingDir + "requirements.txt"
             try req_file.write(req_string)
             
-            let backends = try await pyswift_project?.loaded_backends() ?? []
+            //let backends = try await pyswift_project?.loaded_backends() ?? []
             
-            for platform in platforms {
-                if let pyswift_project {
-                    try await platform.pipUpdate(
+            
+            if let pyswift_project {
+                let cache_dir = Path((pyswift_project.wheel_cache_dir ?? ".wheels").resolve_path(prefix: uv_abs, file_url: false))
+                if !cache_dir.exists {
+                    try cache_dir.mkpath()
+                }
+                
+                let extra_index = pyswift_project.extra_index.filter({$0.hasPrefix("https")})
+                for platform in platforms {
+                    try await platform.pipDownload(
                         requirements: req_file,
-                        extra_index: pyswift_project.extra_index.resolve(prefix: workingDir.absolute())
-                    )
-                } else {
-                    try await platform.pipInstall(
-                        requirements: req_file,
-                        extra_index: []
+                        extra_index: extra_index,
+                        to: cache_dir
                     )
                 }
-                let site_path = platform.getSiteFolder()
-                for backend in backends {
-                    try await backend.copy_to_site_packages(site_path: .init(value: site_path), platform: platform.wheel_platform)
-                }
+                let repo = try RepoFolder(root: cache_dir)
+                try repo.generate_simple(output: cache_dir)
             }
+            
+            
             
         }
         
@@ -86,7 +92,4 @@ extension PythonSwiftProjectCLI {
             return req_String
         }
     }
-    
 }
-
-

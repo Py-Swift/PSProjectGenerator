@@ -16,9 +16,11 @@ extension PythonSwiftProjectCLI {
         
         public static var configuration: CommandConfiguration = .init(
             subcommands: [
+                Cache.self,
                 List.self,
                 Test.self,
                 Validate.self
+                
             ]
         )
         
@@ -128,9 +130,9 @@ extension PythonSwiftProjectCLI.Wheels {
             
             let req_file = workingDir + "requirements.txt"
             try req_file.write(req_string)
-            
+            let extra_index = toml.pyswift.project?.extra_index ?? []
             for platform in platforms {
-                let status = try await platform.validatePips(requirements: req_file)
+                let status = try await platform.validatePips(requirements: req_file, extra_index: extra_index)
                 if status != 0 {
                     print("\n####################################################################################################")
                     print("pip wheels validation for platform <\(platform.wheel_platform)> failed")

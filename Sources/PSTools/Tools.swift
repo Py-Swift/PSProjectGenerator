@@ -119,7 +119,7 @@ func pipInstall_ios(_ requirements: Path, site_path: Path, platform: String = "i
         "-r", requirements.string,
         
     ]
-    task.executablePath = "/Users/Shared/psproject/python3/bin/pip3"
+    task.executablePath = PyTools.pip3
     task.standardInput = nil
     task.launch()
     task.waitUntilExit()

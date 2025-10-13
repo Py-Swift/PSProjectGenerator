@@ -15,12 +15,13 @@ public enum PlatformType: String, Codable {
     case macos
 }
 
-public struct PyProjectToml: Decodable {
+public final class PyProjectToml: Decodable {
     
     public let project: PyProject?
     public let pyswift: PySwift
     public let dependency_groups: [String: [String]]?
     public let tool: Tool?
+    public var root: Path?
     
     enum CodingKeys: String, CodingKey {
         case project
@@ -28,9 +29,46 @@ public struct PyProjectToml: Decodable {
         case dependency_groups = "dependency-groups"
         case tool
     }
+    
+    public init(from decoder: any Decoder) throws {
+        let container: KeyedDecodingContainer<PyProjectToml.CodingKeys> = try decoder.container(keyedBy: PyProjectToml.CodingKeys.self)
+        
+        self.project = try container.decodeIfPresent(PyProjectToml.PyProject.self, forKey: PyProjectToml.CodingKeys.project)
+        self.pyswift = try container.decode(PyProjectToml.PySwift.self, forKey: PyProjectToml.CodingKeys.pyswift)
+        self.dependency_groups = try container.decodeIfPresent([String : [String]].self, forKey: PyProjectToml.CodingKeys.dependency_groups)
+        self.tool = try container.decodeIfPresent(PyProjectToml.Tool.self, forKey: PyProjectToml.CodingKeys.tool)
+        
+    }
 }
 
+public extension String {
+    func resolve_path(prefix: Path, file_url: Bool = true) -> Self {
+        switch self {
+        case let http where http.hasPrefix("https"):
+            return http
+        case let relative where relative.hasPrefix("."):
+            if file_url {
+                return "file://\((prefix + relative))"
+            } else {
+                return "\((prefix + relative))"
+            }
+        default:
+            if file_url {
+                return "file://\(self)"
+            } else {
+                return self
+            }
+        }
+    }
+}
 
+public extension Array where Element == String {
+    func resolve(prefix: Path) -> Self {
+        self.map { index in
+            index.resolve_path(prefix: prefix)
+        }
+    }
+}
 
 extension PyProjectToml {
     public struct PySwift: Decodable {
@@ -49,7 +87,8 @@ extension PyProjectToml {
             
             public let exclude_dependencies: [String]?
             
-            
+            public let wheel_cache_dir: String?
+            public let extra_index: [String]
             
             private var _loaded_backends: [PSBackend] = []
             public func loaded_backends() async throws -> [PSBackend] {
@@ -76,20 +115,28 @@ extension PyProjectToml {
                 case dependencies
                 case platforms
                 case exclude_dependencies
+                case extra_index
+                case wheel_cache_dir
             }
             
             public init(from decoder: any Decoder) throws {
-                let container: KeyedDecodingContainer<PyProjectToml.PySwift.Project.CodingKeys> = try decoder.container(keyedBy: PyProjectToml.PySwift.Project.CodingKeys.self)
+                let container: KeyedDecodingContainer<PyProjectToml.PySwift.Project.CodingKeys> = try decoder.container(keyedBy: CodingKeys.self)
                 
-                self.name = try container.decodeIfPresent(String.self, forKey: PyProjectToml.PySwift.Project.CodingKeys.name)
-                self.folder_name = try container.decodeIfPresent(String.self, forKey: PyProjectToml.PySwift.Project.CodingKeys.folder_name)
-                self.swift_main = try container.decodeIfPresent(String.self, forKey: PyProjectToml.PySwift.Project.CodingKeys.swift_main)
-                self.swift_sources = try container.decodeIfPresent([String].self, forKey: PyProjectToml.PySwift.Project.CodingKeys.swift_sources)
-                self.pip_install_app = try container.decodeIfPresent(Bool.self, forKey: PyProjectToml.PySwift.Project.CodingKeys.pip_install_app)
-                self.backends = try container.decodeIfPresent([String].self, forKey: PyProjectToml.PySwift.Project.CodingKeys.backends)
-                self.dependencies = try container.decodeIfPresent(PyProjectToml.PySwift.Project.Dependencies.self, forKey: PyProjectToml.PySwift.Project.CodingKeys.dependencies)
-                self.platforms = try container.decode([PlatformType].self, forKey: PyProjectToml.PySwift.Project.CodingKeys.platforms)
+                self.name = try container.decodeIfPresent(String.self, forKey: .name)
+                self.folder_name = try container.decodeIfPresent(String.self, forKey: .folder_name)
+                self.swift_main = try container.decodeIfPresent(String.self, forKey: .swift_main)
+                self.swift_sources = try container.decodeIfPresent([String].self, forKey: .swift_sources)
+                self.pip_install_app = try container.decodeIfPresent(Bool.self, forKey: .pip_install_app)
+                self.backends = try container.decodeIfPresent([String].self, forKey: .backends)
+                self.dependencies = try container.decodeIfPresent(PyProjectToml.PySwift.Project.Dependencies.self, forKey: .dependencies)
+                self.platforms = try container.decode([PlatformType].self, forKey: .platforms)
                 self.exclude_dependencies = try container.decodeIfPresent([String].self, forKey: .exclude_dependencies)
+                self.extra_index = try container.decodeIfPresent([String].self, forKey: .extra_index) ?? [
+                    "https://pypi.anaconda.org/beeware/simple",
+                    "https://pypi.anaconda.org/pyswift/simple",
+                    "https://pypi.anaconda.org/kivyschool/simple"
+                ]
+                self.wheel_cache_dir = try container.decodeIfPresent(String.self, forKey: .wheel_cache_dir)
             }
         }
     }

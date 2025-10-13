@@ -20,7 +20,7 @@ public extension URL {
 
 
 @discardableResult
-public func buildHostPython(version: String = "3.11.6", path: Path = .hostPython) async throws -> Int32 {
+public func buildHostPython(version: String = "3.13.7", path: Path = .hostPython) async throws -> Int32 {
 	//let current = Path.current
 	let openssl_path = path + "openssl"
 	let tar = try await downloadPython(version: version)

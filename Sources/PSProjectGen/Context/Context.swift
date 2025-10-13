@@ -110,9 +110,13 @@ public protocol ContextProtocol {
     
     func createResourcesFolder(forced: Bool) async throws
     
-    func pipInstall(requirements: Path) async throws
+    func pipInstall(requirements: Path, extra_index: [String]) async throws
     
-    func validatePips(requirements: Path) async throws -> Int32
+    func pipDownload(requirements: Path, extra_index: [String], to destination: Path) async throws
+    
+    func pipUpdate(requirements: Path, extra_index: [String]) async throws
+    
+    func validatePips(requirements: Path, extra_index: [String]) async throws -> Int32
     
     
 }
@@ -244,6 +248,7 @@ extension PlatformContext {
             "--disable-pip-version-check",
             "--platform=\(wheel_platform)",
             "--only-binary=:all:",
+            
             "--extra-index-url",
             "https://pypi.anaconda.org/beeware/simple",
             "--extra-index-url",
@@ -252,6 +257,35 @@ extension PlatformContext {
             "-r", requirements.string,
             "--dry-run"
         ]
+        task.executablePath = pip3
+        task.standardInput = nil
+        task.launch()
+        task.waitUntilExit()
+        return task.terminationStatus
+    }
+    
+    public func validatePips(requirements: Path, extra_index: [String]) async throws -> Int32 {
+        print(wheel_platform)
+        let task = Process()
+        
+        var arguments: [String] = [
+            "install",
+            "--disable-pip-version-check",
+            "--platform=\(wheel_platform)",
+            "--only-binary=:all:",
+        ]
+        
+        arguments.append(contentsOf: extra_index.map { index in
+            ["--extra-index-url", index]
+        }.flatMap(\.self))
+        
+        arguments.append(contentsOf: [
+            "--target", getSiteFolder().string,
+            "-r", requirements.string,
+            "--dry-run"
+        ])
+        
+        task.arguments = arguments
         task.executablePath = pip3
         task.standardInput = nil
         task.launch()
@@ -276,6 +310,95 @@ extension PlatformContext {
             "-r", requirements.string,
             
         ]
+        task.executablePath = pip3
+        task.standardInput = nil
+        task.launch()
+        task.waitUntilExit()
+    }
+    
+    public func pipInstall(requirements: Path, extra_index: [String]) async throws {
+        print(getSiteFolder(), wheel_platform)
+        let task = Process()
+        
+        var arguments: [String] = [
+            "install",
+            "--disable-pip-version-check",
+            "--platform=\(wheel_platform)",
+            "--only-binary=:all:",
+            //"--abi=cp313-cp313"
+            "--python-version=313"
+        ]
+        
+        arguments.append(contentsOf: extra_index.map { index in
+            ["--extra-index-url", index]
+        }.flatMap(\.self))
+        
+        arguments.append(contentsOf: [
+            "--target", getSiteFolder().string,
+            "-r", requirements.string
+        ])
+        
+        task.arguments = arguments
+        task.executablePath = pip3
+        task.standardInput = nil
+        task.launch()
+        task.waitUntilExit()
+    }
+    
+    
+    public func pipDownload(requirements: Path, extra_index: [String], to destination: Path) async throws {
+        print(getSiteFolder(), wheel_platform)
+        let task = Process()
+        
+        var arguments: [String] = [
+            "download",
+            "--disable-pip-version-check",
+            "--platform=\(wheel_platform)",
+            "--only-binary=:all:",
+            //"--abi=cp313-cp313"
+            "--python-version=313"
+        ]
+        
+        arguments.append(contentsOf: extra_index.map { index in
+            ["--extra-index-url", index]
+        }.flatMap(\.self))
+        
+        arguments.append(contentsOf: [
+            "--dest", destination.string,
+            "-r", requirements.string
+        ])
+        
+        task.arguments = arguments
+        task.executablePath = pip3
+        task.standardInput = nil
+        task.launch()
+        task.waitUntilExit()
+    }
+    
+    public func pipUpdate(requirements: Path, extra_index: [String]) async throws {
+        print(getSiteFolder(), wheel_platform)
+        let task = Process()
+        
+        var arguments: [String] = [
+            "install",
+            "--upgrade",
+            "--disable-pip-version-check",
+            "--platform=\(wheel_platform)",
+            "--only-binary=:all:",
+            //"--abi=cp313-cp313"
+            "--python-version=313"
+        ]
+        
+        arguments.append(contentsOf: extra_index.map { index in
+            ["--extra-index-url", index]
+        }.flatMap(\.self))
+        
+        arguments.append(contentsOf: [
+            "--target", getSiteFolder().string,
+            "-r", requirements.string
+        ])
+        
+        task.arguments = arguments
         task.executablePath = pip3
         task.standardInput = nil
         task.launch()

@@ -477,8 +477,9 @@ public class BWProject: PSProjectProtocol {
         let req_file = workingDir + "requirements.txt"
         try req_file.write(req_string)
         for (_, plats) in platforms {
+            let extra_index = toml.pyswift.project?.extra_index ?? []
             for platform in plats {
-                try await platform.pipInstall(requirements: req_file)
+                try await platform.pipInstall(requirements: req_file, extra_index: extra_index)
                 
                 let site_path = FilePath(value: platform.getSiteFolder())
                 for backend in backends {
@@ -535,10 +536,10 @@ public class BWProject: PSProjectProtocol {
         let req_string = try! await generateReqFromUV(toml: toml, uv: uv, backends: backends)
         let req_file = workingDir + "requirements.txt"
         try req_file.write(req_string)
+        let extra_index = toml.pyswift.project?.extra_index ?? []
         for (_, plats) in platforms {
             for platform in plats {
-                
-                try await platform.pipInstall(requirements: req_file)
+                try await platform.pipInstall(requirements: req_file, extra_index: extra_index)
                 fatalError()
                 
             }
