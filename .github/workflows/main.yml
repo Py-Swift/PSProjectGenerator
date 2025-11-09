@@ -14,7 +14,7 @@ on:
 jobs:
   mainjob1:
     #runs-on: macos-13
-    runs-on: macos-14
+    runs-on: macos-15
     #runs-on: self-hosted
     outputs:
       sha: ${{ steps.shasum.outputs.var }}
