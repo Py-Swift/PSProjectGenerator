@@ -4,13 +4,14 @@
 // Swift Argument Parser
 // https://swiftpackageindex.com/apple/swift-argument-parser/documentation
 
-import ArgumentParser
+@preconcurrency import ArgumentParser
 import PSProjectGen
+
 
 @main
 struct PythonSwiftProjectCLI: AsyncParsableCommand {
 	
-	static var configuration: CommandConfiguration = .init(
+	static let configuration: CommandConfiguration = .init(
 		version: LIBRARY_VERSION,
         subcommands: [
             Create.self,

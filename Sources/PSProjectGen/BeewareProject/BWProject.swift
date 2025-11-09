@@ -8,16 +8,18 @@ import Yams
 import Zip
 import XCAssetsProcessor
 import TOMLKit
-import SwiftCPUDetect
-import PSBackend
+@preconcurrency import SwiftCPUDetect
+@preconcurrency import PSBackend
 import PSTools
 
 import PySwiftKit
-import PyComparable
+//import PyComparable
 import PySerializing
+import PyProjectToml
 
 let arch_info = CpuArchitecture.current() ?? .intel64
 
+//@MainActor
 public class BWProject: PSProjectProtocol {
 	public var name: String
 	
@@ -106,7 +108,6 @@ public class BWProject: PSProjectProtocol {
         
 		_targets = []
         
-        print(app_path)
         psp_bundle = Bundle(path: (app_path + "PythonSwiftProject_PSProjectGen.bundle").string )!
         
 //        _targets = try await platforms.asyncMap { plat in
@@ -123,16 +124,18 @@ public class BWProject: PSProjectProtocol {
 //            base_target.project = self
 //            return base_target
 //        }
-
+        backends = try await toml.tool?.psproject?.loaded_backends() ?? []
 	}
     
+    //@MainActor
     public init(
         name: String?,
         uv: Path,
         _workingDir: Path,
         app_path: Path,
         psp_bundle: Bundle,
-        forced: Bool
+        forced: Bool,
+        targets: [XcodeTarget_Type]
     ) async throws {
         self.uv = uv
         self.app_path = app_path
@@ -147,15 +150,17 @@ public class BWProject: PSProjectProtocol {
         print(uv.absolute())
         //let pyproject = try TOMLDecoder().decode(PyProjectToml.self, from: try (uv.absolute() + "pyproject.toml").read())
         //self.pyProjectToml = pyproject
-        let pyswift_project = toml.pyswift.project
-        let projName = name ?? pyswift_project?.name ?? "MyApp"
-        let workingDir = _workingDir + ( toml.pyswift.project?.folder_name ?? projName)
+        let pyswift_project = toml.tool?.psproject
+        let projName = name ?? pyswift_project?.app_name ?? "MyApp"
+        //let workingDir = _workingDir + ( pyswift_project?.folder_name ?? projName)
+        let workingDir = _workingDir 
+        
         self.workingDir = workingDir
         self.name = projName
         
         single_target = true
         local_py_src = false
-        py_src = if uv.isRelative, let name = toml.project?.name {
+        py_src = if uv.isRelative, let name = toml.tool?.psproject?.app_name {
             .init("$(dirname $PROJECT_DIR)/\(uv.lastComponent)/src/\(name.replacing(try Regex("[ -]"), with: "_"))")
         } else {
             workingDir + "app"
@@ -169,21 +174,31 @@ public class BWProject: PSProjectProtocol {
         
         let platforms: [any ContextProtocol] = try {
             var plats: [any ContextProtocol] = []
-            for p in pyswift_project?.platforms ?? [] {
-                switch p {
-                case .iphoneos:
-                    plats.append(try PlatformContext(arch: Archs.Arm64(), sdk: SDKS.IphoneOS(), root: workingDir))
-                    switch arch_info {
-                    case .intel64:
-                        plats.append(try PlatformContext(arch: Archs.X86_64(), sdk: SDKS.IphoneSimulator(), root: workingDir))
-                    case .arm64:
-                        plats.append(try PlatformContext(arch: Archs.Arm64(), sdk: SDKS.IphoneSimulator(), root: workingDir))
-                    default: break
-                    }
-                case .macos:
-                    break
+            
+            for target in targets {
+                switch target {
+                    case .iphoneos:
+                        if pyswift_project?.ios != nil {
+                            plats.append(try PlatformContext(arch: Archs.Arm64(), sdk: SDKS.IphoneOS(), root: workingDir))
+                            switch arch_info {
+                                case .intel64:
+                                    plats.append(try PlatformContext(arch: Archs.X86_64(), sdk: SDKS.IphoneSimulator(), root: workingDir))
+                                case .arm64:
+                                    plats.append(try PlatformContext(arch: Archs.Arm64(), sdk: SDKS.IphoneSimulator(), root: workingDir))
+                                default: break
+                            }
+                        }
+                    case .macos:
+                        if pyswift_project?.macos != nil {
+                            
+                        }
                 }
             }
+            
+            
+            
+            
+            
             
             return plats
         }()
@@ -266,18 +281,18 @@ public class BWProject: PSProjectProtocol {
 		let local = false
         var output: [String : ProjectSpec.SwiftPackage] = if local {
             [
-                "PythonCore": .local(path: "/Volumes/CodeSSD/GitHub/PythonCore", group: nil, excludeFromProject: false),
+                "CPython": .local(path: "/Volumes/CodeSSD/GitHub/CPython", group: nil, excludeFromProject: false),
                 "PySwiftKit": .local(path: "/Volumes/CodeSSD/PythonSwiftGithub/PySwiftKit", group: nil, excludeFromProject: false),
             ]
         } else {
             [
-                "PythonCore": .remote(
-                    url: "https://github.com/py-swift/PythonCore",
-                    versionRequirement: .upToNextMajorVersion("311.11.0")
+                "CPython": .remote(
+                    url: "https://github.com/py-swift/CPython",
+                    versionRequirement: .upToNextMajorVersion("313.0.0")
                 ),
                 "PySwiftKit": .remote(
                     url: "https://github.com/py-swift/PySwiftKit",
-                    versionRequirement: .upToNextMajorVersion("311.0.0")
+                    versionRequirement: .upToNextMajorVersion("313.0.0")
                 ),
                 //"KivyLauncher": .local(path: "", group: "Frameworks", excludeFromProject: false)
 //                "KivyLauncher": .remote(
@@ -463,7 +478,6 @@ public class BWProject: PSProjectProtocol {
                 let lib_arm64 = python_fw + "ios-arm64"
                 let lib_sim = python_fw + "ios-arm64_x86_64-simulator"
                 for lib in [ lib_arm64, lib_sim ] {
-                    print(lib)
                     try lib.copy(support + lib.lastComponent)
                 }
             case .macos:
@@ -472,19 +486,37 @@ public class BWProject: PSProjectProtocol {
         }
     }
     
+    
     private func pipInstallRequirements() async throws {
         let req_string = try! await generateReqFromUV(toml: toml, uv: uv, backends: backends)
         let req_file = workingDir + "requirements.txt"
         try req_file.write(req_string)
-        for (_, plats) in platforms {
-            let extra_index = toml.pyswift.project?.extra_index ?? []
+        for (t, plats) in platforms {
+            var extra_index: [String] = []
+            if let psproject = toml.tool?.psproject {
+                extra_index.append(contentsOf: psproject.extra_index)
+                switch t {
+                    case .iphoneos:
+                        if let ios = psproject.ios {
+                            extra_index.append(contentsOf: ios.extra_index)
+                        }
+                    case .macos:
+                        if let macos = psproject.macos {
+                            extra_index.append(contentsOf: macos.extra_index)
+                        }
+                }
+            }
             for platform in plats {
+                
                 try await platform.pipInstall(requirements: req_file, extra_index: extra_index)
                 
                 let site_path = FilePath(value: platform.getSiteFolder())
+                
                 for backend in backends {
-                    try await backend.copy_to_site_packages(site_path: site_path, platform: platform.wheel_platform)
+                    try backend.copy_to_site_packages(site_path: site_path, platform: platform.wheel_platform)
                 }
+                    
+                
             }
         }
     }
@@ -536,7 +568,7 @@ public class BWProject: PSProjectProtocol {
         let req_string = try! await generateReqFromUV(toml: toml, uv: uv, backends: backends)
         let req_file = workingDir + "requirements.txt"
         try req_file.write(req_string)
-        let extra_index = toml.pyswift.project?.extra_index ?? []
+        let extra_index = toml.tool?.psproject?.extra_index ?? []
         for (_, plats) in platforms {
             for platform in plats {
                 try await platform.pipInstall(requirements: req_file, extra_index: extra_index)
@@ -730,21 +762,21 @@ public class BWProject: PSProjectProtocol {
         //if kivyAppFiles.exists { try kivyAppFiles.delete() }
         //if sourcesPath.exists { try sourcesPath.delete() }
 	}
-	
+	//@MainActor
     public func createStructure() async throws {
         
-        try await createRootFolders()
+        try! await createRootFolders()
         
-        try await installBackends()
+        try? await installBackends()
         
-        try await copyPythonLibs()
+        try? await copyPythonLibs()
         
-        try await copyAppFiles_iOS()
+        try? await copyAppFiles_iOS()
         
-        try await handleSwiftFiles()
+        try? await handleSwiftFiles()
         
         
-        try await pipInstallRequirements()
+        //try await pipInstallRequirements()
         
         //try await postStructure()
     }
@@ -792,6 +824,7 @@ public class BWProject: PSProjectProtocol {
 	}
 }
 
+//@MainActor
 func temp_main_file(backends: [PSBackend]) throws -> String {
     let imports = try backends.flatMap { backend in
         try backend.wrapper_imports(target_type: .iphoneos).flatMap { imp in

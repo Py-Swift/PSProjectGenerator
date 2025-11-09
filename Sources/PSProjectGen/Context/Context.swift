@@ -5,28 +5,29 @@
 //  Created by CodeBuilder on 03/08/2025.
 //
 
-import PathKit
+@preconcurrency import PathKit
 import Foundation
 import PSTools
+import PyProjectToml
 
 
-public protocol ArchProtocol {
+public protocol ArchProtocol: Sendable {
     var name: String { get }
 }
 
 public struct Archs {
-    public class X86_64: ArchProtocol {
+    public final class X86_64: ArchProtocol {
         public var name: String { "x86_64" }
         
         public init() {}
     }
     
-    public class Arm64: ArchProtocol {
+    public final class Arm64: ArchProtocol {
         public var name: String { "arm64" }
         
         public init() {}
     }
-    public class Universal: ArchProtocol {
+    public final class Universal: ArchProtocol {
         public var name: String { "universal2" }
         
         public init() {}
@@ -42,7 +43,8 @@ public enum XcodeTarget_Type: String {
     }
 }
 
-public protocol SDKProtocol {
+public protocol SDKProtocol: Sendable {
+    var type: SDKS.SDKType { get }
     var name: String { get }
     var wheel_name: String { get }
     var min_os: String { get }
@@ -50,14 +52,18 @@ public protocol SDKProtocol {
     var xcode_target: String { get }
 }
 
+extension SDKProtocol {
+    public var name: String { type.rawValue }
+}
+
 public struct SDKS {
-    public enum SDKType {
+    public enum SDKType: String, Sendable, Codable {
         case iphoneos
         case iphonesimulator
         case macos
     }
-    public class IphoneOS: SDKProtocol {
-        public var name: String { "iphoneos" }
+    public final class IphoneOS: SDKProtocol {
+        public var type: SDKType { .iphoneos }
         public var wheel_name: String { name }
         public var min_os: String { "13_0" }
         public var xcode_target: String { "IphoneOS"}
@@ -65,8 +71,8 @@ public struct SDKS {
         public init() {}
     }
     
-    public class IphoneSimulator: SDKProtocol {
-        public var name: String { "iphonesimulator" }
+    public final class IphoneSimulator: SDKProtocol {
+        public var type: SDKType { .iphonesimulator }
         public var wheel_name: String { name }
         public var min_os: String { "13_0" }
         public var xcode_target: String { "IphoneOS"}
@@ -74,8 +80,8 @@ public struct SDKS {
         public init() {}
     }
     
-    public class MacOS: SDKProtocol {
-        public var name: String { "macos"}
+    public final class MacOS: SDKProtocol {
+        public var type: SDKType { .macos }
         public var wheel_name: String { "macosx" }
         public var min_os: String { "10_15" }
         public var xcode_target: String { "MacOS"}
@@ -84,12 +90,13 @@ public struct SDKS {
     }
 }
 
-public protocol ContextProtocol {
+public protocol ContextProtocol: Sendable {
     
     associatedtype Arch: ArchProtocol
     associatedtype SDK: SDKProtocol
     var arch: Arch { get }
     var sdk: SDK { get }
+    var root: Path { get }
     
     var python3: Path { get }
     var pip3: Path { get }
@@ -110,6 +117,7 @@ public protocol ContextProtocol {
     
     func createResourcesFolder(forced: Bool) async throws
     
+    //@MainActor
     func pipInstall(requirements: Path, extra_index: [String]) async throws
     
     func pipDownload(requirements: Path, extra_index: [String], to destination: Path) async throws
@@ -178,14 +186,14 @@ public final class PlatformContext<Arch, SDK>: ContextProtocol where Arch: ArchP
     
     
     
-    public var arch: Arch
+    public let arch: Arch
     
-    public var sdk: SDK
+    public let sdk: SDK
     
-    public var root: Path
+    public let root: Path
     
-    public var pip3: Path = "/Users/Shared/psproject/hostpython3/bin/pip3"
-    public var python3: Path = "/Users/Shared/psproject/hostpython3/bin/python3"
+    public let pip3: Path = .hostPython + "bin/pip3"//"/Users/Shared/psproject/hostpython3/bin/pip3"
+    public let python3: Path = .hostPython + "bin/python3"//"/Users/Shared/psproject/hostpython3/bin/python3"
     
     public init(arch: Arch, sdk: SDK, root: Path) throws {
         
@@ -294,7 +302,6 @@ extension PlatformContext {
     }
     
     public func pipInstall(requirements: Path) async throws {
-        print(getSiteFolder(), wheel_platform)
         let task = Process()
         
         task.arguments = [
@@ -317,7 +324,6 @@ extension PlatformContext {
     }
     
     public func pipInstall(requirements: Path, extra_index: [String]) async throws {
-        print(getSiteFolder(), wheel_platform)
         let task = Process()
         
         var arguments: [String] = [
@@ -337,17 +343,16 @@ extension PlatformContext {
             "--target", getSiteFolder().string,
             "-r", requirements.string
         ])
-        
         task.arguments = arguments
         task.executablePath = pip3
         task.standardInput = nil
         task.launch()
         task.waitUntilExit()
+        
     }
     
     
     public func pipDownload(requirements: Path, extra_index: [String], to destination: Path) async throws {
-        print(getSiteFolder(), wheel_platform)
         let task = Process()
         
         var arguments: [String] = [
@@ -376,7 +381,6 @@ extension PlatformContext {
     }
     
     public func pipUpdate(requirements: Path, extra_index: [String]) async throws {
-        print(getSiteFolder(), wheel_platform)
         let task = Process()
         
         var arguments: [String] = [
@@ -397,7 +401,6 @@ extension PlatformContext {
             "--target", getSiteFolder().string,
             "-r", requirements.string
         ])
-        
         task.arguments = arguments
         task.executablePath = pip3
         task.standardInput = nil
@@ -410,4 +413,30 @@ extension PlatformContext where SDK == SDKS.MacOS {
     public func pipInstall(requirements: Path) async throws {
         print(PSTools.pipInstall(requirements, site_path: getSiteFolder()))
     }
+}
+
+
+extension Tool.PSProject {
+    public func contextPlatforms(workingDir: Path) throws -> [any ContextProtocol] {
+        var plats: [any ContextProtocol] = []
+        
+        if let ios {
+            plats.append(try PlatformContext(arch: Archs.Arm64(), sdk: SDKS.IphoneOS(), root: workingDir))
+            switch arch_info {
+                case .intel64:
+                    plats.append(try PlatformContext(arch: Archs.X86_64(), sdk: SDKS.IphoneSimulator(), root: workingDir))
+                case .arm64:
+                    plats.append(try PlatformContext(arch: Archs.Arm64(), sdk: SDKS.IphoneSimulator(), root: workingDir))
+                default: break
+            }
+        }
+        
+        if let macos {
+            
+        }
+        
+        return plats
+    }
+    
+    
 }

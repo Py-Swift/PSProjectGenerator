@@ -11,7 +11,7 @@ extension PythonSwiftProjectCLI {
     
     
     struct Template: AsyncParsableCommand {
-        public static var configuration: CommandConfiguration = .init(
+        public static let configuration: CommandConfiguration = .init(
             subcommands: [
                 Package.self
             ]

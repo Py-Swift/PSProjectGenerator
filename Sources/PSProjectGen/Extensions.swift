@@ -4,6 +4,7 @@ import PathKit
 import PSTools
 
 extension Array {
+    //@MainActor
     @inlinable public func asyncMap<T, E>(_ transform: (Element) async throws(E) -> T) async throws(E) -> [T] where E : Error {
         var elements = [T]()
         for element in self {
@@ -78,7 +79,7 @@ func which_python() throws -> Path {
 
 extension URL {
     public static var beeware_python_ios: URL {
-        .init(string: "https://github.com/beeware/Python-Apple-support/releases/download/3.11-b7/Python-3.11-iOS-support.b7.tar.gz")!
+        .init(string: "https://github.com/beeware/Python-Apple-support/releases/download/3.13-b11/Python-3.13-iOS-support.b11.tar.gz")!
     }
     
     public static var sdl2_frameworks: URL {

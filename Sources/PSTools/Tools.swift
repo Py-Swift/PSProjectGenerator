@@ -1,7 +1,7 @@
 
 
 import Foundation
-import PathKit
+@preconcurrency import PathKit
 
 
 
@@ -158,7 +158,7 @@ func pipInstall_ios(pip: String, site_path: Path, platform: String = "ios_13_0_a
 }
 
 public enum PyTools {
-    public static let hostpython: Path = "/Users/Shared/psproject/hostpython3"
+    public static let hostpython: Path = getHostPython()//"/Users/Shared/psproject/hostpython3"
     public static var pip3: Path { hostpython + "bin/pip3" }
     public static var python3: Path { hostpython + "bin/python3" }
     
@@ -182,6 +182,7 @@ public enum PyTools {
 
 public class UVTool {
     
+    //@MainActor
     static let shared = UVTool(uv: which.uv)
     
     private let uv: Path
@@ -190,6 +191,7 @@ public class UVTool {
         self.uv = uv
     }
     
+    //@MainActor
     public static func help() {
         let task = Process()
         task.arguments = ["help"]
@@ -200,16 +202,18 @@ public class UVTool {
         
     }
     
+    //@MainActor
     public static func Init(path: String, name: String?) {
         let task = Process()
         var arguments: [String] = [
             "init",
-            "--lib", path,
-            "--python", "3.11.11"
+            //"--lib", path,
+            "--package", name ?? path,
+            "--python", "3.13"
         ]
-        if let name {
-            arguments.append(contentsOf: ["--name", name])
-        }
+//        if let name {
+//            arguments.append(contentsOf: ["--name", name])
+//        }
         
         task.arguments = arguments
         task.executablePath = shared.uv
@@ -219,6 +223,7 @@ public class UVTool {
         
     }
     
+    //@MainActor
     @_disfavoredOverload
     public static func export_requirements(project: Path, group: String?) {
         let task = Process()
@@ -241,6 +246,7 @@ public class UVTool {
         task.waitUntilExit()
     }
     
+    //@MainActor
     public static func export_requirements(uv_root: Path, group: String?) -> String {
         let task = Process()
         var arguments = [

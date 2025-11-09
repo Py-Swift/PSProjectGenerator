@@ -46,7 +46,7 @@ public class PackageTemplate {
         
         
         let package_dependencies: [Package.Dependency] = [
-            .package(url: "https://github.com/py-swift/PySwiftKit", from: .init(311, 0, 0)),
+            .package(url: "https://github.com/py-swift/PySwiftKit", from: .init(313, 0, 0)),
             .package(url: "https://github.com/py-swift/PyFileGenerator", from: .init(0, 0, 1)),
             // add other packages 
         ]
@@ -57,7 +57,7 @@ public class PackageTemplate {
             .target(
                 name: \(literal: name),
                 dependencies: [
-                    .product(name: "SwiftonizeModules", package: "PySwiftKit")
+                    .product(name: "PySwiftKitBase", package: "PySwiftKit")
                     // add other package products or internal targets
                 ],
                 resources: [

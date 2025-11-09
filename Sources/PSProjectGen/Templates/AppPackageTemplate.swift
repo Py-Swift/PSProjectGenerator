@@ -71,7 +71,7 @@ public class AppPackageTemplate {
                 .target(
                     name: \(literal: name),
                     dependencies: [
-                        .product(name: "SwiftonizeModules", package: "PySwiftKit")
+                        .product(name: "PySwiftKitBase", package: "PySwiftKit")
                     ]\(raw: resourcesCode)
                 ),
             ]

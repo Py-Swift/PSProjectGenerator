@@ -9,9 +9,11 @@
 
 
 import Foundation
-import PySwiftKit
-import PythonCore
-import PSBackend
+@preconcurrency import PathKit
+@preconcurrency import PySwiftKit
+@preconcurrency import CPython
+@preconcurrency import PSBackend
+
 //import PythonFiles
 
 func DEBUG_PRINT(_ items: Any..., separator: String = " ", terminator: String = "\n") {
@@ -38,6 +40,7 @@ fileprivate func pyCheckStatus(status: inout PyStatus, config: inout PyConfig, m
 //}
 class PythonHandler {
     
+    //@MainActor
     static let shared = PythonHandler()
     
     var threadState: UnsafeMutablePointer<PyThreadState>?
@@ -58,12 +61,15 @@ class PythonHandler {
     }
     
     
-    
+    //@MainActor
+    //@MainActor
     func start(stdlib: String, app_packages: [String], debug: Bool) {
       
         if debug { DEBUG_PRINT("Configuring isolated Python...") }
-        PyPreConfig_InitIsolatedConfig(&preconfig)
-        PyConfig_InitIsolatedConfig(&config)
+        PyPreConfig_InitPythonConfig(&preconfig)
+        //PyPreConfig_InitIsolatedConfig(&preconfig)
+        PyConfig_InitPythonConfig(&config)
+        //PyConfig_InitIsolatedConfig(&config)
         
         // Configure the Python interpreter:
         // Enforce UTF-8 encoding for stderr, stdout, file-system encoding and locale.
@@ -72,10 +78,10 @@ class PythonHandler {
         //  Converted to Swift 5.7.1 by Swiftify v5.7.32383 - https://swiftify.com/
         preconfig.utf8_mode = 1
         // Don't buffer stdio. We want output to appears in the log immediately
-        config.buffered_stdio = 0
+        //config.buffered_stdio = 0
         // Don't write bytecode; we can't modify the app bundle
         // after it has been signed.
-        config.write_bytecode = 0
+        //config.write_bytecode = 0
         // Isolated apps need to set the full PYTHONPATH manually.
         config.module_search_paths_set = 1
 		
@@ -126,9 +132,16 @@ class PythonHandler {
         
         PyImport_AppendInittab(cString("backend_tools"), BackendTools.py_init)
         
+        if ProcessInfo.processInfo.environment["HOST_PYTHON_ROOT"] == nil {
+            setenv("HOST_PYTHON_ROOT", Path.hostPython.string, 1)
+        }
+        
         if debug { DEBUG_PRINT("Initializing Python runtime...") }
         status = Py_InitializeFromConfig(&config)
         pyCheckStatus(status: &status, config: &config, msg: "Unable to initialize Python interpreter")
+        
+        PyEval_SaveThread()
+        
         
 //        let base = UnsafeBufferPointer(start: config.executable!, count: wcslen(config.base_exec_prefix!)).map { c in
 //            Character(UnicodeScalar(Int(c))!)
@@ -145,12 +158,14 @@ class PythonHandler {
 }
 
 
+//@MainActor
 public func launchPython() throws {
     let python = PythonHandler.shared
     //try PythonFiles.checkModule()
+    
     if !python.defaultRunning {
         python.start(
-            stdlib: "/Users/Shared/psproject/hostpython3/lib/python3.13",
+            stdlib: (getHostPython() + "lib/python3.13").string,
             app_packages: [
                 "/Users/Shared/psproject/backends"
             ],

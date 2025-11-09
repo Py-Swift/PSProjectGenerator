@@ -12,7 +12,7 @@ import PSTools
 extension PythonSwiftProjectCLI {
     struct Backends: AsyncParsableCommand {
         
-        static var configuration: CommandConfiguration = .init(
+        static let configuration: CommandConfiguration = .init(
             subcommands: [
                 Install.self,
                 Update.self
@@ -30,7 +30,7 @@ extension PythonSwiftProjectCLI.Backends {
         
         func run() async throws {
             if !Validation.hostPython() { return }
-            try launchPython()
+            try await launchPython()
             
             let backends = Path.ps_shared + "backends"
             
@@ -54,7 +54,7 @@ extension PythonSwiftProjectCLI.Backends {
         func run() async throws {
             
             if !Validation.hostPython() { return }
-            try launchPython()
+            try await launchPython()
             
             let backends = Path.ps_shared + "backends"
             

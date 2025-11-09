@@ -8,6 +8,15 @@
 import ProjectSpec
 import PathKit
 
+extension BuildScript.ScriptType: Swift.ExpressibleByStringLiteral {
+    
+    public init(stringLiteral value: StringLiteralType) {
+        self = .script(value)
+    }
+    
+    
+}
+
 extension BuildScript {
     static func installPyModulesIphoneOS(pythonProject: Path) -> BuildScript {
         .init(
@@ -44,7 +53,7 @@ extension BuildScript {
     
     static func signPythonBinaryIphoneOS() -> BuildScript {
         .init(
-            script: .script("""
+            script: """
             set -e
 
             install_dylib () {
@@ -100,7 +109,28 @@ extension BuildScript {
 
             echo "Signing frameworks as $EXPANDED_CODE_SIGN_IDENTITY_NAME ($EXPANDED_CODE_SIGN_IDENTITY)..."
             find "$CODESIGNING_FOLDER_PATH/Frameworks" -name "*.framework" -exec /usr/bin/codesign --force --sign "$EXPANDED_CODE_SIGN_IDENTITY" ${OTHER_CODE_SIGN_FLAGS:-} -o runtime --timestamp=none --preserve-metadata=identifier,entitlements,flags --generate-entitlement-der "{}" \\; 
-            """),
+            """,
+            name: "Sign Python Binary Modules"
+        )
+    }
+    
+    static func copyAppPackagesMacOS() -> BuildScript {
+        .init(
+            script: """
+                
+                """,
+            name: "Copy App Packages"
+        )
+    }
+    
+    static func signPythonBinaryMacOS() -> BuildScript {
+        .init(
+            script: """
+            set -e
+            echo "Signed as $EXPANDED_CODE_SIGN_IDENTITY_NAME ($EXPANDED_CODE_SIGN_IDENTITY)"
+            find "$BUILT_PRODUCTS_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/app_packages" -name "*.so" -exec /usr/bin/codesign --force --sign "$EXPANDED_CODE_SIGN_IDENTITY" -o runtime --timestamp=none --preserve-metadata=identifier,entitlements,flags --generate-entitlement-der {} \\; 
+            find "$BUILT_PRODUCTS_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/app" -name "*.so" -exec /usr/bin/codesign --force --sign "$EXPANDED_CODE_SIGN_IDENTITY" -o runtime --timestamp=none --preserve-metadata=identifier,entitlements,flags --generate-entitlement-der {} \\; 
+            """,
             name: "Sign Python Binary Modules"
         )
     }

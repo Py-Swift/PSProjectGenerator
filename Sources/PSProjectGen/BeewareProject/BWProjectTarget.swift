@@ -3,15 +3,16 @@ import Foundation
 import AppKit
 import PathKit
 import XcodeGenKit
-import ProjectSpec
+@preconcurrency import ProjectSpec
 import Yams
 import Algorithms
 import TOMLKit
-import PSBackend
+@preconcurrency import PSBackend
 import PySwiftKit
-import PyTypes
-import PyComparable
+//import PyTypes
+//import PyComparable
 import PSTools
+import PyProjectToml
 
 extension Dictionary where Key == String, Value == Any {
     mutating func merge(pyDict: [String: PyPointer]) throws {
@@ -22,7 +23,7 @@ extension Dictionary where Key == String, Value == Any {
     
     init(object: PyPointer) throws {
         var new = Self()
-        for (k,v) in try [String: PyPointer](object: object) {
+        for (k,v) in try [String: PyPointer].casted(from: object) {
             new[k] = try py2any(value: v)
         }
         self = new
@@ -32,9 +33,9 @@ extension Dictionary where Key == String, Value == Any {
 func py2any(value: PyPointer) throws -> Any {
     switch value {
     case &PyUnicode_Type:
-        try String(object: value)
+        try String.casted(unsafe: value)
     case &PyLong_Type:
-        try Int(object: value)
+        try Int.casted(unsafe: value)
     case &PyList_Type:
         try [Any].fromList(list: value)
     case &PyDict_Type:
@@ -54,6 +55,7 @@ extension Array where Element == Any {
     }
    
 }
+
 
 public class BWProjectTarget: PSProjTargetProtocol {
 	
@@ -179,19 +181,21 @@ public class BWProjectTarget: PSProjTargetProtocol {
         return sources
 	}
 	
+    //@MainActor
 	public func dependencies() async throws -> [ProjectSpec.Dependency] {
 		var output: [ProjectSpec.Dependency] = [
 
-			.init(type: .package(products: ["SwiftonizeModules"]), reference: "PySwiftKit"),
-            .init(type: .package(products: ["PythonCore"]), reference: "PythonCore"),
+			.init(type: .package(products: ["PySwiftKitBase"]), reference: "PySwiftKit"),
+            .init(type: .package(products: ["CPython"]), reference: "CPython"),
 			
 		]
         
-        if let project = toml.pyswift.project {
+        if let tool = toml.tool, let project = tool.psproject {
             let ttype: PSBackend.XcodeTarget_Type = switch target_type {
             case .iphoneos: .iphoneos
             case .macos: .macos
             }
+            
             for backend in try await project.loaded_backends() {
                 output.append(contentsOf: try await backend.target_dependencies(target_type: ttype))
             }
@@ -251,12 +255,14 @@ public class BWProjectTarget: PSProjTargetProtocol {
         case .macos:
             [:]
         }
-        
-        let py_plist = PyDict_New()!
-        for backend in try await toml.pyswift.project?.loaded_backends() ?? [] {
-            try backend.plist_entries(plist: py_plist, target_type: .iphoneos)
+        try await withGIL { [weak toml] in
+            let py_plist = PyDict_New()!
+            for backend in try await toml?.tool?.psproject?.loaded_backends() ?? [] {
+                try backend.plist_entries(plist: py_plist, target_type: .iphoneos)
+            }
+            try mainkeys.merge(pyDict: try .casted(unsafe: py_plist))
         }
-        try mainkeys.merge(pyDict: try .init(object: py_plist))
+        
         
         
         switch target_type {

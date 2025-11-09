@@ -4,8 +4,9 @@ import ProjectSpec
 import XcodeGenCore
 import PathKit
 import XcodeProj
+@preconcurrency import PSBackend
 
-
+//@MainActor
 public protocol PSProjTargetProtocol {
 	var name: String { get }
 	var pythonProject: Path { get }
@@ -25,6 +26,7 @@ public protocol PSProjTargetProtocol {
     func prepare() async throws
 }
 
+//@MainActor
 public protocol PSProjectProtocol {
 	var name: String { get }
 	
@@ -48,6 +50,8 @@ public protocol PSProjectProtocol {
 	func project() async throws ->  Project
 	func generate() async throws
 }
+
+extension PSBackend: @unchecked Swift.Sendable {}
 //
 //public class PSProjectGen {
 //	

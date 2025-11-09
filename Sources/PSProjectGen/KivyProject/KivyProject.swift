@@ -7,7 +7,7 @@
 
 import Foundation
 import AppKit
-import PathKit
+@preconcurrency import PathKit
 import XcodeGenKit
 import ProjectSpec
 import Yams

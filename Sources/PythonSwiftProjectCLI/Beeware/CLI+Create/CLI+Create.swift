@@ -1,11 +1,11 @@
 
 import Foundation
-import PathKit
+@preconcurrency import PathKit
 import ArgumentParser
 import PSProjectGen
 import TOMLKit
 import MachO
-import SwiftCPUDetect
+@preconcurrency import SwiftCPUDetect
 import PSTools
 
 let arch_info = CpuArchitecture.current() ?? .intel64
@@ -18,9 +18,21 @@ private func getAppLocation() -> Path? {
     return local_bin
 }
 
+
 extension PythonSwiftProjectCLI {
     
     struct Create: AsyncParsableCommand {
+        
+        static var configuration: CommandConfiguration {
+            .init(subcommands: [
+                Xcode.self
+            ])
+        }
+        
+        
+    }
+    
+    struct Create2: AsyncParsableCommand {
         @Option var name: String?
         
         @Option(name: .short) var python_src: Path?
@@ -65,7 +77,8 @@ extension PythonSwiftProjectCLI {
                     _workingDir: .current,
                     app_path: app_path,
                     psp_bundle: .init(),
-                    forced: forced
+                    forced: forced,
+                    targets: []
                 )
                 
                 try await proj.createStructure()
@@ -75,7 +88,6 @@ extension PythonSwiftProjectCLI {
                 guard let name else { fatalError("None UV based project must include -n <name of app>")}
                 //var spec_file = spec_file
                 //print(platform)
-                print(try await Path.ios_python())
                 //guard let app_path = getAppLocation()?.parent() else { fatalError("App Folder not found")}
                 
                 var src: Path? = python_src

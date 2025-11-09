@@ -8,11 +8,13 @@ import Foundation
 import PathKit
 import Zip
 
+//@MainActor
 public class IphoneosWheelSources {
     
+    //@MainActor
     public static let shared: IphoneosWheelSources = .init()
     
-    public struct PackageData: Decodable {
+    public struct PackageData: Decodable, Sendable {
         public let name: String
         public let id: String
         public let package_types: [String]
@@ -23,14 +25,14 @@ public class IphoneosWheelSources {
         
     }
     
-    public struct Release: Decodable {
+    public struct Release: Decodable, Sendable {
         public let basename: String
         
         public let attrs: Attrs
         public let download_url: String
         public let version: String
         
-        public struct Attrs: Decodable {
+        public struct Attrs: Decodable, Sendable {
             public let abi: String?
             public let python_version: String
             public let packagetype: String
@@ -56,7 +58,7 @@ public class IphoneosWheelSources {
 }
 
 extension IphoneosWheelSources {
-    public protocol WheelSource: Hashable, RawRepresentable {
+    public protocol WheelSource: Hashable, RawRepresentable, Sendable {
         var baseURL: URL { get }
         var rawValue: String { get }
     }

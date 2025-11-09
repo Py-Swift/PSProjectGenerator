@@ -6,12 +6,20 @@
 import PathKit
 import TOMLKit
 import PSBackend
+import PyProjectToml
 
+public let HOST_PYTHON_VER = "3.13.7"
+
+//@MainActor
 public func generateReqFromUV(toml: PyProjectToml, uv: Path, backends: [PSBackend]) async throws -> String {
-    var excludes = toml.pyswift.project?.exclude_dependencies ?? []
-    excludes.append(contentsOf: try backends.flatMap({ backend in
-        try backend.exclude_dependencies()
-    }))
+    //var excludes = toml.pyswift.project?.exclude_dependencies ?? []
+    
+    var excludes = toml.tool?.psproject?.exclude_dependencies ?? []
+    
+    for backend in backends {
+        excludes.append(contentsOf: try backend.exclude_dependencies())
+    }
+    
     if !excludes.isEmpty {
         var reqs = [String]()
         let uv_abs = uv.absolute()
@@ -20,11 +28,12 @@ public func generateReqFromUV(toml: PyProjectToml, uv: Path, backends: [PSBacken
             // and temp folder now mimics an uv project directory
             try copyAndModifyUVProject(uv_abs, excludes: excludes)
             reqs.append(
-                UVTool.export_requirements(uv_root: tmp, group: "iphoneos")
+                UVTool.export_requirements(uv_root: tmp, group: nil)
             )
-            if let ios_pips = toml.pyswift.project?.dependencies?.pips {
-                reqs.append(contentsOf: ios_pips)
-            }
+            
+        }
+        if let ios_pips = toml.tool?.psproject?.dependencies?.pips {
+            reqs.append(contentsOf: ios_pips)
         }
         
         let req_txt = reqs.joined(separator: "\n")
@@ -34,9 +43,9 @@ public func generateReqFromUV(toml: PyProjectToml, uv: Path, backends: [PSBacken
         // excludes not defined or empty go on like normal
         var reqs = [String]()
         reqs.append(
-            UVTool.export_requirements(uv_root: uv, group: "iphoneos")
+            UVTool.export_requirements(uv_root: uv, group: nil)
         )
-        if let ios_pips = toml.pyswift.project?.dependencies?.pips {
+        if let ios_pips = toml.tool?.psproject?.dependencies?.pips {
             reqs.append(contentsOf: ios_pips)
         }
                     

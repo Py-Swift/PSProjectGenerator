@@ -3,18 +3,20 @@
 //  PythonSwiftProject
 //
 import Foundation
-import ArgumentParser
+@preconcurrency import ArgumentParser
 import PathKit
 import PSProjectGen
 import Zip
 import TOMLKit
 import PSTools
+import PyProjectToml
+
 
 extension PythonSwiftProjectCLI {
     
     struct Wheels: AsyncParsableCommand {
         
-        public static var configuration: CommandConfiguration = .init(
+        public static let configuration: CommandConfiguration = .init(
             subcommands: [
                 Cache.self,
                 List.self,
@@ -49,7 +51,7 @@ extension PythonSwiftProjectCLI.Wheels {
                 \(items.joined(separator: "\n"))
                 """)
             } else {
-                let list = IphoneosWheelSources.shared.all_wheels()
+                let list = await IphoneosWheelSources.shared.all_wheels()
                 print("""
                 Available iOS Wheels (\(list.count) items):
                 - \(list.joined(separator: "\n- "))
@@ -94,30 +96,31 @@ extension PythonSwiftProjectCLI.Wheels {
             if !Validation.hostPython() { return }
             try Validation.backends()
             
-            try launchPython()
+            try await launchPython()
             
             let toml_path = (uv.absolute() + "pyproject.toml")
             let toml = try TOMLDecoder().decode(PyProjectToml.self, from: try (toml_path).read())
-            let pyswift_project = toml.pyswift.project
-            guard let folderName = pyswift_project?.folder_name else { return }
-            let workingDir = (uv.parent()) + folderName
-            let platforms: [any ContextProtocol] = try {
+            let pyswift_project = toml.tool?.psproject
+            
+            //let workingDir = (uv.parent()) + folderName
+            let platforms: [any ContextProtocol] = try await {
                 var plats: [any ContextProtocol] = []
-                for p in pyswift_project?.platforms ?? [] {
-                    switch p {
-                    case .iphoneos:
-                        plats.append(try PlatformContext(arch: Archs.Arm64(), sdk: SDKS.IphoneOS(), root: workingDir))
-                        switch arch_info {
+                if let ios = await pyswift_project?.ios {
+                    let workingDir = ios.get_project_root(root: uv)
+                    plats.append(try PlatformContext(arch: Archs.Arm64(), sdk: SDKS.IphoneOS(), root: workingDir))
+                    switch arch_info {
                         case .intel64:
                             plats.append(try PlatformContext(arch: Archs.X86_64(), sdk: SDKS.IphoneSimulator(), root: workingDir))
                         case .arm64:
                             plats.append(try PlatformContext(arch: Archs.Arm64(), sdk: SDKS.IphoneSimulator(), root: workingDir))
                         default: break
-                        }
-                    case .macos:
-                        break
                     }
                 }
+                
+                if let macos = await pyswift_project?.macos {
+                    
+                }
+                
                 
                 return plats
             }()
@@ -128,21 +131,38 @@ extension PythonSwiftProjectCLI.Wheels {
                 backends: try await pyswift_project?.loaded_backends() ?? []
             )
             
-            let req_file = workingDir + "requirements.txt"
-            try req_file.write(req_string)
-            let extra_index = toml.pyswift.project?.extra_index ?? []
+            
             for platform in platforms {
-                let status = try await platform.validatePips(requirements: req_file, extra_index: extra_index)
-                if status != 0 {
-                    print("\n####################################################################################################")
-                    print("pip wheels validation for platform <\(platform.wheel_platform)> failed")
-                    print("####################################################################################################\n")
-                    return
-                } else {
-                    print("\n####################################################################################################")
-                    print("pip wheels validation for platform <\(platform.wheel_platform)> succeeded")
-                    print("####################################################################################################\n")
+                try await Path.withTemporaryFolder { root in
+                    let req_file = root + "requirements.txt"
+                    try req_file.write(req_string)
+                    var extra_index: [String] = []
+                    if let pyswift_project {
+                        await extra_index.append(contentsOf: pyswift_project.extra_index)
+                        switch platform.sdk.type {
+                            case .iphoneos, .iphonesimulator:
+                                if let ios = await pyswift_project.ios {
+                                    extra_index.append(contentsOf: ios.extra_index)
+                                }
+                            case .macos:
+                                if let macos = await pyswift_project.macos {
+                                    extra_index.append(contentsOf: macos.extra_index)
+                                }
+                        }
+                    }
+                    let status = try await platform.validatePips(requirements: req_file, extra_index: extra_index)
+                    if status != 0 {
+                        print("\n####################################################################################################")
+                        print("pip wheels validation for platform <\(platform.wheel_platform)> failed")
+                        print("####################################################################################################\n")
+                        return
+                    } else {
+                        print("\n####################################################################################################")
+                        print("pip wheels validation for platform <\(platform.wheel_platform)> succeeded")
+                        print("####################################################################################################\n")
+                    }
                 }
+                
             }
             
         }
