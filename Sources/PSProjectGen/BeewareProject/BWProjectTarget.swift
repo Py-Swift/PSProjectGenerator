@@ -319,6 +319,7 @@ public class BWProjectTarget: PSProjTargetProtocol {
 	
 	public func postBuildScripts() async throws -> [ProjectSpec.BuildScript] {
         [
+            .installAppModule(pythonProject: pythonProject),
             .installPyModulesIphoneOS(pythonProject: pythonProject),
             .signPythonBinaryIphoneOS()
         ]

@@ -866,7 +866,7 @@ func temp_main_file(backends: [PSBackend]) throws -> String {
     //let modules = wrapper_importers.flatMap({$0.modules.map(\.description)})
     return """
     import Foundation
-    import PySwiftObject
+    import PySwiftKit
     \(imports_block)
     
     \(main_code)

@@ -18,6 +18,29 @@ extension BuildScript.ScriptType: Swift.ExpressibleByStringLiteral {
 }
 
 extension BuildScript {
+    
+    static func installAppModule(pythonProject: Path) -> BuildScript {
+        let hostPython: Path = .hostPython
+        let pip3 = hostPython + "bin/pip3"
+        return .init(
+            script: .script("""
+            
+            APP_SRC="$PROJECT_DIR/../../"
+            PIP3=\(pip3)
+            PIP_ARGS="--compile -U --no-deps"
+            
+            if [ "$EFFECTIVE_PLATFORM_NAME" = "-iphonesimulator" ]; then
+                echo "Installing App module for iOS Simulator"
+                $PIP3 install $APP_SRC $PIP_ARGS -t "$PROJECT_DIR/site_packages.iphonesimulator/"
+            else
+                echo "Installing App module for iOS Device"
+                $PIP3 install $APP_SRC $PIP_ARGS -t "$PROJECT_DIR/site_packages.iphoneos/" 
+            fi
+            """),
+            name: "Install App Module"
+        )
+    }
+    
     static func installPyModulesIphoneOS(pythonProject: Path) -> BuildScript {
         .init(
             script: .script("""
