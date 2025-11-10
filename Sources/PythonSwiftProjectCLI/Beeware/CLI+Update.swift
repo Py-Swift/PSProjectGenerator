@@ -12,20 +12,67 @@ import SwiftCPUDetect
 import PSTools
 import PyProjectToml
 import PSBackend
+import PipRepo
 
+
+fileprivate func infoTitle(title: String) -> String {
+    var lines = [String]()
+    let title_size = title.count
+    
+    let top_bot = String([Character](repeating: "#", count: title_size + 12))
+    lines.append("")
+    lines.append(top_bot)
+    
+    lines.append("##    \(title)    ##")
+    lines.append(top_bot)
+    lines.append("")
+    return lines.joined(separator: "\n")
+}
+
+
+extension Tool.PSProject {
+    func getXcodePlatforms(workingDir: Path) async throws -> [any ContextProtocol] {
+        
+            var plats: [any ContextProtocol] = []
+            //guard let psproject = tool?.psproject else { return plats }
+            if let ios {
+                plats.append(try PlatformContext(arch: Archs.Arm64(), sdk: SDKS.IphoneOS(), root: workingDir))
+                switch arch_info {
+                    case .intel64:
+                        plats.append(try PlatformContext(arch: Archs.X86_64(), sdk: SDKS.IphoneSimulator(), root: workingDir))
+                    case .arm64:
+                        plats.append(try PlatformContext(arch: Archs.Arm64(), sdk: SDKS.IphoneSimulator(), root: workingDir))
+                    default: break
+                }
+            }
+            
+            if let macos  {
+                
+            }
+            
+            
+            return plats
+        
+    }
+}
 
 extension PythonSwiftProjectCLI {
     
     struct Update: AsyncParsableCommand {
-        @Argument var uv: Path?
         
-        func run() async throws {
-            if !Validation.hostPython() { return }
-            try Validation.backends()
+        static var configuration: CommandConfiguration { .init(
+            subcommands: [
+                App.self,
+                Simple.self,
+                SitePackages.self
+            ],
+            defaultSubcommand: SitePackages.self
+        )}
+        @MainActor
+        static func updateSitePackages(uv: Path) async throws {
             
-            try launchPython()
             
-            let uv = uv ?? .current
+            //let uv = uv ?? .current
             
             let toml_path = (uv.absolute() + "pyproject.toml")
             let toml = try toml_path.loadPyProjectToml()
@@ -35,26 +82,9 @@ extension PythonSwiftProjectCLI {
             }
             
             let workingDir = uv + "project_dist/xcode"
-            let platforms = try {
-                var plats: [any ContextProtocol] = []
-                if let ios = psproject.ios {
-                    plats.append(try PlatformContext(arch: Archs.Arm64(), sdk: SDKS.IphoneOS(), root: workingDir))
-                    switch arch_info {
-                        case .intel64:
-                            plats.append(try PlatformContext(arch: Archs.X86_64(), sdk: SDKS.IphoneSimulator(), root: workingDir))
-                        case .arm64:
-                            plats.append(try PlatformContext(arch: Archs.Arm64(), sdk: SDKS.IphoneSimulator(), root: workingDir))
-                        default: break
-                    }
-                }
-                
-                if let macos = psproject.macos {
-                    
-                }
-                
-                
-                return plats
-            }().asChuckedTarget()
+            let platforms = try await psproject.getXcodePlatforms(workingDir: workingDir)
+            
+            let cplatforms = platforms.asChuckedTarget()
             
             let backends = try await psproject.loaded_backends()
             
@@ -64,7 +94,7 @@ extension PythonSwiftProjectCLI {
             
             
             
-            for (t, plats) in platforms {
+            for (t, plats) in cplatforms {
                 var extra_index: [String] = []
                 if let psproject = toml.tool?.psproject {
                     extra_index.append(contentsOf: psproject.extra_index)
@@ -94,91 +124,121 @@ extension PythonSwiftProjectCLI {
             }
         }
         
-    }
-    
-    struct Update2: AsyncParsableCommand {
-        @Argument var uv: Path
         
-        func run() async throws {
+        static func cythonizeApp(uv: Path) async throws {
             
-            if !Validation.hostPython() { return }
-            try Validation.backends()
             
-            try await launchPython()
+            let uv_abs = uv.absolute()
+            let toml_path = (uv_abs + "pyproject.toml")
+            let toml = try toml_path.loadPyProjectToml()
             
-            let toml_path = (uv.absolute() + "pyproject.toml")
-            let toml = try TOMLDecoder().decode(PyProjectToml.self, from: try (toml_path).read())
-            guard let pyswift_project = toml.tool?.psproject else {
+            guard let psproject = toml.tool?.psproject else {
                 fatalError("tool.psproject in pyproject.toml not found")
             }
-            //guard let folderName = pyswift_project?.folder_name else { return }
             
-            let workingDir = uv + "platform_dists/iphone_macos/xcode"
-            let platforms: [any ContextProtocol] = try await {
-                var plats: [any ContextProtocol] = []
-                if let ios = await pyswift_project.ios {
-                    plats.append(try PlatformContext(arch: Archs.Arm64(), sdk: SDKS.IphoneOS(), root: workingDir))
-                    switch arch_info {
-                        case .intel64:
-                            plats.append(try PlatformContext(arch: Archs.X86_64(), sdk: SDKS.IphoneSimulator(), root: workingDir))
-                        case .arm64:
-                            plats.append(try PlatformContext(arch: Archs.Arm64(), sdk: SDKS.IphoneSimulator(), root: workingDir))
-                        default: break
-                    }
-                }
-                
-                if let macos = await pyswift_project.macos {
-                    
-                }
-                
-                
-                return plats
-            }()
-            
-            let req_string = try! await Self.generateReqFromUV(toml: toml, uv: uv)
-            let req_file = workingDir + "requirements.txt"
-            try req_file.write(req_string)
-            
-            let backends = try await pyswift_project.loaded_backends()
-            
-            for platform in platforms {
-                
-                    try await platform.pipUpdate(
-                        requirements: req_file,
-                        extra_index: pyswift_project.extra_index.resolve(prefix: uv.absolute())
-                    )
-                
-                let site_path = platform.getSiteFolder()
-                for backend in backends {
-                    try await backend.copy_to_site_packages(site_path: .init(value: site_path), platform: platform.wheel_platform)
-                }
+            guard psproject.cythonized else {
+                print("app module is not configured as cythonizable")
+                return
             }
             
+            let workingDir = uv + "project_dist/xcode"
+            guard workingDir.exists else {
+                print("no xcode project found, ignoring cythonize")
+                return
+            }
+            let platforms = try await psproject.getXcodePlatforms(workingDir: workingDir).asChuckedTarget()
+            
+            
+            for (t, plats) in platforms {
+                for platform in plats {
+                    switch t {
+                        case .iphoneos:
+                            try ciBuildWheelApp(
+                                src: uv,
+                                output_dir: uv_abs + "wheels",
+                                arch: "\(platform.arch.name)_\(platform.sdk.wheel_name)",
+                                platform: "ios"
+                            )
+                        case .macos:
+                            break
+                    }
+                }
+            }
         }
         
-        private static func generateReqFromUV(toml: PyProjectToml, uv: Path) async throws -> String {
-            var req_String = await UVTool.export_requirements(uv_root: uv, group: "iphoneos")
+        static func updateSimple(uv: Path) async throws {
+            let uv_abs = uv.absolute()
+            let toml_path = (uv_abs + "pyproject.toml")
+            let toml = try toml_path.loadPyProjectToml()
             
-            if let excludes = await toml.tool?.psproject?.exclude_dependencies, !excludes.isEmpty {
-                let req_lines = req_String.split(separator: "\n").filter { line in
-                    for exclude in excludes {
-                        if line.starts(with: exclude) { return false }
-                    }
-                    return true
-                }
-                req_String = req_lines.joined(separator: "\n")
+            guard let psproject = toml.tool?.psproject else {
+                fatalError("tool.psproject in pyproject.toml not found")
             }
-                
-//            let ios_pips = (toml.tool?.psproject?.ios?.
-//                            
-//                            ?? []).joined(separator: "\n")
-//                req_String = "\(req_String)\n\(ios_pips)"
             
-            print(req_String)
-            return req_String
+            let cache_dir = uv_abs + "wheels"
+            if !cache_dir.exists {
+                try? cache_dir.mkdir()
+            }
+            
+            let repo = try RepoFolder(root: cache_dir)
+            try repo.generate_simple(output: cache_dir)
         }
     }
+    
+    
+    
     
 }
 
 
+extension PythonSwiftProjectCLI.Update {
+    
+    struct App: AsyncParsableCommand {
+        @Argument var uv: Path?
+        
+        func run() async throws {
+            
+            print(infoTitle(title: "Cythonize App Module"))
+            
+            if !Validation.hostPython() { return }
+            try Validation.backends()
+            
+            try launchPython()
+            
+            try await PythonSwiftProjectCLI.Update.cythonizeApp(uv: uv ?? .current)
+        }
+    }
+    
+    struct SitePackages: AsyncParsableCommand {
+        @Argument var uv: Path?
+        
+        func run() async throws {
+            
+            print(infoTitle(title: "Updating Site-Packages"))
+            
+            if !Validation.hostPython() { return }
+            try Validation.backends()
+            
+            try launchPython()
+            
+            try await PythonSwiftProjectCLI.Update.updateSitePackages(uv: uv ?? .current)
+        }
+    }
+    
+    struct Simple: AsyncParsableCommand {
+        @Argument var uv: Path?
+        
+        func run() async throws {
+            
+            print(infoTitle(title: "Updating Wheels Simple"))
+            
+            if !Validation.hostPython() { return }
+            try Validation.backends()
+            
+            try launchPython()
+            
+            try await PythonSwiftProjectCLI.Update.updateSimple(uv: uv ?? .current)
+            
+        }
+    }
+}

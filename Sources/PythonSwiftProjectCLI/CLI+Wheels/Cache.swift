@@ -34,7 +34,7 @@ extension PythonSwiftProjectCLI.Wheels {
                 if !Validation.hostPython() { return }
                 try Validation.backends()
                 
-                try await launchPython()
+                try launchPython()
                 let uv_abs = uv.absolute()
                 let toml_path = (uv_abs + "pyproject.toml")
                 

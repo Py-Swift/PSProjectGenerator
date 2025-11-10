@@ -34,4 +34,5 @@ public class Which {
     }
 }
 
-@MainActor public let which = Which()
+//@MainActor
+public let which = Which()

@@ -38,3 +38,25 @@ extension Process {
     
     
 }
+
+@discardableResult
+public func ciBuildWheelApp(src: Path, output_dir: Path, arch: String, platform: String) throws -> Int32 {
+    
+    var env = ProcessInfo.processInfo.environment
+    
+    env["CIBW_BUILD"] = "cp313-*"
+    env["CIBW_ARCHS"] = arch
+    env["CIBW_PLATFORM"] = platform
+    let targs = [
+        "--output-dir", output_dir.string
+    ]
+    let task = Process()
+    
+    task.executablePath = .cibuildwheel
+    task.currentDirectoryURL = src.url
+    task.arguments = targs
+    task.environment = env
+    try task.run()
+    task.waitUntilExit()
+    return task.terminationStatus
+}

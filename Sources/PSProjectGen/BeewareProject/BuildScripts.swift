@@ -40,6 +40,52 @@ extension BuildScript {
             name: "Install App Module"
         )
     }
+//    if [ "$ARCHS" = "arm64 x86_64" ]; then
+//    echo "universal archs pip wheel"
+//    else
+//        echo "single arch pip wheel"
+//        fi
+    static func installAppWheelModule(name: String) -> BuildScript {
+        let hostPython: Path = .hostPython
+        let pip3 = hostPython + "bin/pip3"
+        let pip_base = """
+        -U --no-deps \
+        --disable-pip-version-check \
+        --platform=$PLATFORM_ARCH \
+        --only-binary=:all: \
+        --extra-index-url $APP_SRC/wheels/simple \
+        --target $SITE
+        """
+        let os_min = "ios_13_0"
+        
+        return .init(
+            script: .script("""
+            
+            APP_SRC="$PROJECT_DIR/../.."
+            PIP3=\(pip3)
+            PLATFORM_ARCH=\(os_min)_arm64_iphoneos
+            
+            if [ "$EFFECTIVE_PLATFORM_NAME" = "-iphonesimulator" ]; then
+                echo "Installing App module for iOS Simulator"
+                SITE="$PROJECT_DIR/site_packages.iphonesimulator/"
+                if [ "$ARCHS" = "x86_64" ]; then
+                    PLATFORM_ARCH=\(os_min)_x86_64_iphonesimulator
+                else
+                    PLATFORM_ARCH=\(os_min)_arm64_iphonesimulator
+                fi
+            else
+                echo "Installing App module for iOS Device"
+                SITE="$PROJECT_DIR/site_packages.iphoneos/" 
+            fi
+            
+            PIP_CMD="$PIP3 install \(name) \(pip_base)"
+            echo "$PIP_CMD"
+            $PIP_CMD
+            
+            """),
+            name: "Install App Module"
+        )
+    }
     
     static func installPyModulesIphoneOS(pythonProject: Path) -> BuildScript {
         .init(

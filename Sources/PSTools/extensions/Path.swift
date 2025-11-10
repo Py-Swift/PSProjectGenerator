@@ -5,10 +5,13 @@
 @preconcurrency import PathKit
 import Foundation
 
+extension Path: @unchecked Swift.Sendable {}
+
 
 extension Path {
     public static var ps_shared: Path { "/Users/Shared/psproject"}
     public static var ps_support: Path { ps_shared + "support" }
+    public static let cibuildwheel = which.cibuildwheel
 }
 
 public func getHostPython() -> Path {

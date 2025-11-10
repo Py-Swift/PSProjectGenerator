@@ -28,6 +28,7 @@ extension Tool {
         public let wheel_cache_dir: String?
         public let extra_index: [String]
         
+        public let cythonized: Bool
         // platforms
         public var android: Platforms.Android?
         public var ios: Platforms.iOS?
@@ -45,6 +46,7 @@ extension Tool {
             case extra_index
             case wheel_cache_dir
             
+            case cythonized
             
             case android
             case ios
@@ -71,6 +73,8 @@ extension Tool {
             ]
             self.wheel_cache_dir = try container.decodeIfPresent(String.self, forKey: .wheel_cache_dir)
             
+            self.cythonized = try container.decodeIfPresent(Bool.self, forKey: .cythonized) ?? false
+            
             self.android = try container.decodeIfPresent(Platforms.Android.self, forKey: .android)
             self.ios = try container.decodeIfPresent(Platforms.iOS.self, forKey: .ios)
             self.macos = try container.decodeIfPresent(Platforms.macOS.self, forKey: .macos)
@@ -91,7 +95,7 @@ extension Tool {
         //@MainActor
         private func get_backends() async throws -> [PSBackend] {
             let backends_root = Path.ps_shared + "backends"
-
+            print("get_backends: \(backends ?? [])")
             return try (backends ?? []).compactMap { try .load(name: $0, path: backends_root) }
             
         }
