@@ -69,6 +69,9 @@ jobs:
           artifacts: "PSProject.tar.gz"
           token: ${{ secrets.Homebrew }}
           allowUpdates: true
+          omitBodyDuringUpdate: true
+          omitNameDuringUpdate: true
+          makeLatest: true
         
   mainjob2:
     needs: mainjob1
